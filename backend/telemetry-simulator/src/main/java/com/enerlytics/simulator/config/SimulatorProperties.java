@@ -14,6 +14,9 @@ public class SimulatorProperties {
     private Long seed;
     private double anomalyProbability = 0.005;
     private Duration meterRefreshInterval = Duration.ofMinutes(1);
+    private boolean useRegistry = false;
+    private String registryUrl;
+    private String registryApiKey;
 
     @NestedConfigurationProperty
     private KafkaProperties kafka = new KafkaProperties();
@@ -64,6 +67,30 @@ public class SimulatorProperties {
 
     public void setMeterRefreshInterval(Duration meterRefreshInterval) {
         this.meterRefreshInterval = meterRefreshInterval;
+    }
+
+    public boolean isUseRegistry() {
+        return useRegistry;
+    }
+
+    public void setUseRegistry(boolean useRegistry) {
+        this.useRegistry = useRegistry;
+    }
+
+    public String getRegistryUrl() {
+        return registryUrl;
+    }
+
+    public void setRegistryUrl(String registryUrl) {
+        this.registryUrl = registryUrl;
+    }
+
+    public String getRegistryApiKey() {
+        return registryApiKey;
+    }
+
+    public void setRegistryApiKey(String registryApiKey) {
+        this.registryApiKey = registryApiKey;
     }
 
     public KafkaProperties getKafka() {

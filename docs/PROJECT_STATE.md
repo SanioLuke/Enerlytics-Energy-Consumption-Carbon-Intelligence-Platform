@@ -3,10 +3,15 @@
 ## Current Phase
 
 Phase 10 — Realistic smart-meter telemetry simulator implemented as a dedicated
-runnable Spring Boot component. It produces `MeterReadingReceived` Kafka events
-for active simulated meters with profile-based load curves, deterministic seeding,
-simulation acceleration, and metrics. Ingestion consumers and downstream event
-processors remain future work.
+runnable Spring Boot component. The simulator is now decoupled from the
+backend database: it can read the active simulated-meter registry via an internal
+registry API authenticated with a shared service API key, falling back to a
+read-only JDBC source when registry mode is disabled. Ingestion consumers and
+downstream event processors remain future work.
+
+A latent Spring Data property-resolution bug in `MeterRepository` derived-query
+methods was also fixed by switching meter-scoped queries to explicit nested-path
+naming (`organization.id`, `site.id`, etc.).
 
 ## Completed Work
 
@@ -103,10 +108,22 @@ processors remain future work.
 - `backend/telemetry-simulator/src/main/resources/application.yml`
 - `backend/telemetry-simulator/src/main/java/com/enerlytics/simulator/**`
 - `backend/telemetry-simulator/src/test/java/com/enerlytics/simulator/**`
+- `backend/src/main/java/com/enerlytics/meter/api/internal/SimulationInternalController.java`
+- `backend/src/main/java/com/enerlytics/meter/api/dto/SimulatedMeterResponse.java`
+- `backend/src/main/java/com/enerlytics/meter/application/SimulationService.java`
+- `backend/src/main/java/com/enerlytics/meter/domain/MeterSimulationProfile.java`
+- `backend/src/main/java/com/enerlytics/security/internal/InternalApiKeyAuthFilter.java`
+- `backend/src/main/java/com/enerlytics/security/internal/InternalApiAuthentication.java`
+- `backend/src/main/java/com/enerlytics/config/SecurityConfig.java`
+- `backend/src/main/java/com/enerlytics/meter/infrastructure/persistence/MeterRepository.java`
+- `backend/src/main/java/com/enerlytics/meter/application/MeterService.java`
+- `backend/src/test/java/com/enerlytics/meter/MeterRepositoryTest.java`
+- `backend/src/test/java/com/enerlytics/meter/MeterServiceTest.java`
 - `docs/EVENT_ARCHITECTURE.md`
 - `docs/PROJECT_STATE.md`
 - `README.md`
 - `.env.example`
+- `.gitignore`
 
 ### Previous Phases
 
@@ -202,9 +219,9 @@ remains valid.
 
 ### Telemetry Simulator
 
-- The simulator reads directly from PostgreSQL; in a multi-service deployment it
-  should consume a published meter registry event or API rather than sharing the
-  database.
+- The simulator can now read from a registry API, but it still defaults to JDBC
+  for local convenience. In production, registry mode with `SIMULATOR_USE_REGISTRY=true`
+  and a strong `SIMULATOR_REGISTRY_API_KEY` should be used.
 - No automated `OFFLINE` transition based on missed simulated heartbeats.
 - Physical device credential provisioning is not implemented.
 - Multi-channel meters are not yet modeled.
@@ -257,6 +274,8 @@ remains valid.
   correlation propagation should replace it once tracing is configured.
 - The simulator module is built independently; consider a root aggregator POM
   or CI matrix so both backend and simulator are validated together.
+- The internal API key is a shared secret; evaluate mTLS or short-lived tokens
+  for production service-to-service authentication.
 
 ## Next Recommended Task
 

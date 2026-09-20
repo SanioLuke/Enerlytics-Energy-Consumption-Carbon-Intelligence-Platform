@@ -167,6 +167,10 @@ the backend is running.
 A separate Spring Boot module in `backend/telemetry-simulator` produces realistic
 Kafka `MeterReadingReceived` events for meters flagged as simulated and active.
 
+By default it reads the simulated-meter registry directly from PostgreSQL. Set
+`SIMULATOR_USE_REGISTRY=true` to use the backend registry API instead, which
+decouples the simulator from the database.
+
 Run it after starting the local database and Kafka:
 
 ```bash

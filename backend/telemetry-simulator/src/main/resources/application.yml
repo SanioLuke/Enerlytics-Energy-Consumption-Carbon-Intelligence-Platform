@@ -17,6 +17,9 @@ enerlytics:
     seed: ${SIMULATOR_SEED:}
     anomaly-probability: ${SIMULATOR_ANOMALY_PROBABILITY:0.005}
     meter-refresh-interval: ${SIMULATOR_METER_REFRESH_INTERVAL:PT1M}
+    use-registry: ${SIMULATOR_USE_REGISTRY:false}
+    registry-url: ${SIMULATOR_REGISTRY_URL:http://localhost:8080/api/v1/internal/simulation/meters}
+    registry-api-key: ${SIMULATOR_REGISTRY_API_KEY:}
     kafka:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
       topic: ${SIMULATOR_KAFKA_TOPIC:enerlytics.telemetry.meter-reading-received.v1}

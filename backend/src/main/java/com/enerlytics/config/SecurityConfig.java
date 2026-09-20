@@ -2,6 +2,7 @@ package com.enerlytics.config;
 
 import com.enerlytics.security.ProblemAccessDeniedHandler;
 import com.enerlytics.security.ProblemAuthenticationEntryPoint;
+import com.enerlytics.security.internal.InternalApiKeyAuthFilter;
 import com.enerlytics.security.jwt.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -38,15 +39,18 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final InternalApiKeyAuthFilter internalApiKeyAuthFilter;
     private final ProblemAuthenticationEntryPoint authenticationEntryPoint;
     private final ProblemAccessDeniedHandler accessDeniedHandler;
     private final String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          InternalApiKeyAuthFilter internalApiKeyAuthFilter,
                           ProblemAuthenticationEntryPoint authenticationEntryPoint,
                           ProblemAccessDeniedHandler accessDeniedHandler,
                           @Value("${cors.allowed-origins:http://localhost:4200}") String allowedOrigins) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.internalApiKeyAuthFilter = internalApiKeyAuthFilter;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
         this.allowedOrigins = allowedOrigins;
@@ -67,6 +71,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**", "/error", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(internalApiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

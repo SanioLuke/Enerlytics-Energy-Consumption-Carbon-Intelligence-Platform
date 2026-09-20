@@ -59,7 +59,7 @@ public class MeterService {
         OrganizationEntity organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
 
-        if (meterRepository.existsByOrganizationIdAndMeterCodeIgnoreCase(organizationId, request.code())) {
+        if (meterRepository.existsByOrganization_IdAndMeterCodeIgnoreCase(organizationId, request.code())) {
             throw new IllegalArgumentException("Meter code already exists in this organization");
         }
 
@@ -185,7 +185,7 @@ public class MeterService {
     }
 
     private MeterEntity findMeter(UUID organizationId, UUID meterId) {
-        return meterRepository.findByIdAndOrganizationId(meterId, organizationId)
+        return meterRepository.findByIdAndOrganization_Id(meterId, organizationId)
                 .orElseThrow(() -> new EntityNotFoundException("Meter not found"));
     }
 

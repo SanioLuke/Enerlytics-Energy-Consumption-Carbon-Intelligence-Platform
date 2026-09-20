@@ -60,7 +60,7 @@ class MeterServiceTest {
         SiteEntity site = new SiteEntity(org, "S1", "Site", "UTC");
         when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
         when(siteRepository.findByIdAndOrganizationIdAndActiveTrue(any(), eq(orgId))).thenReturn(Optional.of(site));
-        when(meterRepository.existsByOrganizationIdAndMeterCodeIgnoreCase(orgId, "M-001")).thenReturn(false);
+        when(meterRepository.existsByOrganization_IdAndMeterCodeIgnoreCase(orgId, "M-001")).thenReturn(false);
         when(meterRepository.save(any(MeterEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CreateMeterRequest request = new CreateMeterRequest(
@@ -78,7 +78,7 @@ class MeterServiceTest {
         UUID orgId = UUID.randomUUID();
         OrganizationEntity org = new OrganizationEntity("test", "Test");
         when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
-        when(meterRepository.existsByOrganizationIdAndMeterCodeIgnoreCase(orgId, "M-001")).thenReturn(true);
+        when(meterRepository.existsByOrganization_IdAndMeterCodeIgnoreCase(orgId, "M-001")).thenReturn(true);
 
         CreateMeterRequest request = new CreateMeterRequest(
                 "M-001", "Main", null, null, null, MeterType.ELECTRICITY,
@@ -93,7 +93,7 @@ class MeterServiceTest {
         OrganizationEntity org = new OrganizationEntity("test", "Test");
         SiteEntity site = new SiteEntity(org, "S1", "Site", "UTC");
         MeterEntity meter = new MeterEntity(org, site, "M-001", "Main", 60);
-        when(meterRepository.findByIdAndOrganizationId(meter.getId(), orgId)).thenReturn(Optional.of(meter));
+        when(meterRepository.findByIdAndOrganization_Id(meter.getId(), orgId)).thenReturn(Optional.of(meter));
         when(meterRepository.save(meter)).thenReturn(meter);
 
         MeterResponse response = meterService.activate(orgId, meter.getId());

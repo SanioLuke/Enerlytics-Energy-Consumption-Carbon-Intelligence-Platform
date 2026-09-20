@@ -2,6 +2,7 @@ package com.enerlytics.simulator.infrastructure;
 
 import com.enerlytics.simulator.domain.SimulatedMeter;
 import com.enerlytics.simulator.domain.SimulationProfile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
+@ConditionalOnProperty(name = "enerlytics.simulator.use-registry", havingValue = "false", matchIfMissing = true)
 public class JdbcMeterSource implements MeterSource {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;

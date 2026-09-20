@@ -36,13 +36,13 @@ class MeterRepositoryTest {
     private OrganizationRepository organizationRepository;
 
     @Test
-    void findByIdAndOrganizationIdReturnsOwnedMeter() {
+    void findByIdAndOrganization_IdReturnsOwnedMeter() {
         OrganizationEntity org = organizationRepository.save(new OrganizationEntity("meter-org", "Meter Org"));
         SiteEntity site = siteRepository.save(new SiteEntity(org, "S-1", "Site One", "UTC"));
         MeterEntity meter = meterRepository.save(new MeterEntity(org, site, "M-001", "Main Meter", 60));
 
-        assertThat(meterRepository.findByIdAndOrganizationId(meter.getId(), org.getId())).isPresent();
-        assertThat(meterRepository.findByIdAndOrganizationId(meter.getId(), UUID.randomUUID())).isEmpty();
+        assertThat(meterRepository.findByIdAndOrganization_Id(meter.getId(), org.getId())).isPresent();
+        assertThat(meterRepository.findByIdAndOrganization_Id(meter.getId(), UUID.randomUUID())).isEmpty();
     }
 
     @Test
@@ -51,8 +51,8 @@ class MeterRepositoryTest {
         SiteEntity site = siteRepository.save(new SiteEntity(org, "S-2", "Site Two", "UTC"));
         meterRepository.save(new MeterEntity(org, site, "M-ABC", "Meter ABC", 60));
 
-        assertThat(meterRepository.existsByOrganizationIdAndMeterCodeIgnoreCase(org.getId(), "m-abc")).isTrue();
-        assertThat(meterRepository.existsByOrganizationIdAndMeterCodeIgnoreCase(org.getId(), "M-ABC")).isTrue();
+        assertThat(meterRepository.existsByOrganization_IdAndMeterCodeIgnoreCase(org.getId(), "m-abc")).isTrue();
+        assertThat(meterRepository.existsByOrganization_IdAndMeterCodeIgnoreCase(org.getId(), "M-ABC")).isTrue();
     }
 
     @Test
@@ -66,7 +66,7 @@ class MeterRepositoryTest {
         meterRepository.save(active);
         meterRepository.save(offline);
 
-        Page<MeterEntity> page = meterRepository.findByOrganizationIdAndStatus(
+        Page<MeterEntity> page = meterRepository.findByOrganization_IdAndStatus(
                 org.getId(), MeterStatus.ACTIVE, PageRequest.of(0, 10, Sort.by("meterName")));
 
         assertThat(page.getTotalElements()).isEqualTo(1);

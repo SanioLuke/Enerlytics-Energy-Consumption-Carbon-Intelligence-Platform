@@ -74,6 +74,13 @@ public class MeterEntity extends AuditedEntity {
     @Column(name = "metadata")
     private String metadata;
 
+    @Column(name = "simulated", nullable = false)
+    private boolean simulated = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "simulation_profile", length = 32)
+    private MeterSimulationProfile simulationProfile;
+
     protected MeterEntity() {
     }
 
@@ -220,4 +227,21 @@ public class MeterEntity extends AuditedEntity {
     public void setMetadata(String metadata) {
         this.metadata = metadata;
     }
+
+    public boolean isSimulated() {
+        return simulated;
+    }
+
+    public void setSimulated(boolean simulated) {
+        this.simulated = simulated;
+    }
+
+    public MeterSimulationProfile getSimulationProfile() {
+        return simulationProfile;
+    }
+
+    public void setSimulationProfile(MeterSimulationProfile simulationProfile) {
+        this.simulationProfile = simulationProfile;
+    }
+
 }
