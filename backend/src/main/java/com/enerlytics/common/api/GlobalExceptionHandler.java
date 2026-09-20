@@ -46,6 +46,14 @@ public class GlobalExceptionHandler {
                         HttpStatus.UNAUTHORIZED, ex.getMessage(), request, null));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Problem> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(buildProblem("invalid-argument", "Invalid argument",
+                        HttpStatus.BAD_REQUEST, ex.getMessage(), request, null));
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Problem> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)

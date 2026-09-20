@@ -9,5 +9,8 @@ public record OrganizationResponse(
         String organizationKey,
         String displayName,
         OrganizationStatus status,
-        String defaultCurrency) {
+        String defaultCurrency,
+        Integer fiscalYearStartMonth,
+        String locale,
+        java.time.Instant archivedAt) {
 }

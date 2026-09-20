@@ -1,0 +1,900 @@
+openapi: 3.0.3
+info:
+  title: Enerlytics Facilities API
+  version: 1.0.0
+  description: Organization, site, building, and zone management endpoints.
+servers:
+  - url: http://localhost:8080/api/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /organizations:
+    post:
+      summary: Create a new organization
+      tags: [Organizations]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationRequest'
+      responses:
+        '201':
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /organizations/{id}:
+    get:
+      summary: Get an organization
+      tags: [Organizations]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Organization details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update an organization
+      tags: [Organizations]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationRequest'
+      responses:
+        '200':
+          description: Organization updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Archive an organization
+      tags: [Organizations]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Archived
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /organizations/{orgId}/sites:
+    post:
+      summary: Create a site
+      tags: [Sites]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSiteRequest'
+      responses:
+        '201':
+          description: Site created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      summary: List sites
+      tags: [Sites]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Paged list of sites
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageSiteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /organizations/{orgId}/sites/{siteId}:
+    get:
+      summary: Get a site
+      tags: [Sites]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: siteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Site details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a site
+      tags: [Sites]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: siteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSiteRequest'
+      responses:
+        '200':
+          description: Site updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Archive a site
+      tags: [Sites]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: siteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Archived
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /organizations/{orgId}/sites/{siteId}/buildings:
+    post:
+      summary: Create a building
+      tags: [Buildings]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: siteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBuildingRequest'
+      responses:
+        '201':
+          description: Building created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      summary: List buildings
+      tags: [Buildings]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: siteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: size
+          in: query
+          schema:
+            type: integer
+        - name: sort
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Paged list of buildings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageBuildingResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /organizations/{orgId}/sites/{siteId}/buildings/{buildingId}:
+    get:
+      summary: Get a building
+      tags: [Buildings]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: siteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: buildingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Building details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a building
+      tags: [Buildings]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: siteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: buildingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBuildingRequest'
+      responses:
+        '200':
+          description: Building updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Archive a building
+      tags: [Buildings]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: siteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: buildingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Archived
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones:
+    post:
+      summary: Create a zone
+      tags: [Zones]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: siteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: buildingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateZoneRequest'
+      responses:
+        '201':
+          description: Zone created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZoneResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      summary: List zones
+      tags: [Zones]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: siteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: buildingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paged list of zones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageZoneResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones/{zoneId}:
+    get:
+      summary: Get a zone
+      tags: [Zones]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: siteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: buildingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: zoneId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Zone details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZoneResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a zone
+      tags: [Zones]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: siteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: buildingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: zoneId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateZoneRequest'
+      responses:
+        '200':
+          description: Zone updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZoneResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Archive a zone
+      tags: [Zones]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: siteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: buildingId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: zoneId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Archived
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CreateOrganizationRequest:
+      type: object
+      required: [organizationKey, displayName, defaultCurrency, fiscalYearStartMonth, locale, status]
+      properties:
+        organizationKey: { type: string, maxLength: 64 }
+        displayName: { type: string, maxLength: 200 }
+        defaultCurrency: { type: string, pattern: '^[A-Z]{3}$' }
+        fiscalYearStartMonth: { type: integer, minimum: 1, maximum: 12 }
+        locale: { type: string }
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, ARCHIVED]
+
+    UpdateOrganizationRequest:
+      type: object
+      properties:
+        displayName: { type: string, maxLength: 200 }
+        defaultCurrency: { type: string, pattern: '^[A-Z]{3}$' }
+        fiscalYearStartMonth: { type: integer, minimum: 1, maximum: 12 }
+        locale: { type: string }
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, ARCHIVED]
+
+    OrganizationResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        organizationKey: { type: string }
+        displayName: { type: string }
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, ARCHIVED]
+        defaultCurrency: { type: string }
+        fiscalYearStartMonth: { type: integer }
+        locale: { type: string }
+        archivedAt: { type: string, format: date-time }
+
+    CreateSiteRequest:
+      type: object
+      required: [code, name, timezone, floorAreaUnit]
+      properties:
+        code: { type: string, maxLength: 64 }
+        name: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 2000 }
+        address: { type: string, maxLength: 255 }
+        country: { type: string, minLength: 2, maxLength: 2 }
+        state: { type: string, maxLength: 100 }
+        city: { type: string, maxLength: 100 }
+        postalCode: { type: string, maxLength: 20 }
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        timezone: { type: string, maxLength: 100 }
+        gridRegionCode: { type: string, maxLength: 100 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        floorArea: { type: number }
+        floorAreaUnit:
+          type: string
+          enum: [M2, FT2]
+        openedOn: { type: string, format: date }
+        closedOn: { type: string, format: date }
+
+    UpdateSiteRequest:
+      type: object
+      properties:
+        name: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 2000 }
+        address: { type: string, maxLength: 255 }
+        country: { type: string, minLength: 2, maxLength: 2 }
+        state: { type: string, maxLength: 100 }
+        city: { type: string, maxLength: 100 }
+        postalCode: { type: string, maxLength: 20 }
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        timezone: { type: string, maxLength: 100 }
+        gridRegionCode: { type: string, maxLength: 100 }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        floorArea: { type: number }
+        floorAreaUnit:
+          type: string
+          enum: [M2, FT2]
+        openedOn: { type: string, format: date }
+        closedOn: { type: string, format: date }
+
+    SiteResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        description: { type: string }
+        address: { type: string }
+        country: { type: string }
+        state: { type: string }
+        city: { type: string }
+        postalCode: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        timezone: { type: string }
+        gridRegionCode: { type: string }
+        currency: { type: string }
+        floorArea: { type: number }
+        floorAreaUnit:
+          type: string
+          enum: [M2, FT2]
+        active: { type: boolean }
+        openedOn: { type: string, format: date }
+        closedOn: { type: string, format: date }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer }
+
+    PageSiteResponse:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/SiteResponse'
+
+    CreateBuildingRequest:
+      type: object
+      required: [code, name, floorAreaUnit]
+      properties:
+        code: { type: string, maxLength: 64 }
+        name: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 2000 }
+        floorArea: { type: number }
+        floorAreaUnit:
+          type: string
+          enum: [M2, FT2]
+        buildingType: { type: string, maxLength: 64 }
+        commissionedDate: { type: string, format: date }
+
+    UpdateBuildingRequest:
+      type: object
+      properties:
+        name: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 2000 }
+        floorArea: { type: number }
+        floorAreaUnit:
+          type: string
+          enum: [M2, FT2]
+        buildingType: { type: string, maxLength: 64 }
+        commissionedDate: { type: string, format: date }
+
+    BuildingResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        siteId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        description: { type: string }
+        floorArea: { type: number }
+        floorAreaUnit:
+          type: string
+          enum: [M2, FT2]
+        buildingType: { type: string }
+        commissionedDate: { type: string, format: date }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer }
+
+    PageBuildingResponse:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildingResponse'
+
+    CreateZoneRequest:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, maxLength: 64 }
+        name: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 2000 }
+        zoneType: { type: string, maxLength: 64 }
+        buildingId: { type: string, format: uuid }
+
+    UpdateZoneRequest:
+      type: object
+      properties:
+        name: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 2000 }
+        zoneType: { type: string, maxLength: 64 }
+        buildingId: { type: string, format: uuid }
+
+    ZoneResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        siteId: { type: string, format: uuid }
+        buildingId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        description: { type: string }
+        zoneType: { type: string }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer }
+
+    PageZoneResponse:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZoneResponse'
+
+    Page:
+      type: object
+      properties:
+        content: { type: array, items: { type: object } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+        totalPages: { type: integer }
+
+    Problem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        correlationId: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'

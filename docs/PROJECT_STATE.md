@@ -2,12 +2,12 @@
 
 ## Current Phase
 
-Phase 7 — Identity and access-control foundation complete. The backend now has
-JWT-based authentication, refresh-token rotation, role-based authorization,
-tenant-aware access control, Flyway-managed identity/organization schema, and
-integration tests covering the core security scenarios. No business domain
-features beyond identity and a single organization read endpoint have been
-implemented.
+Phase 8 — Organization and facility domain complete. CRUD and lifecycle
+management are implemented for `Organization`, `Site`, `Building`, and `Zone`
+with DTOs, validation, pagination, sorting, search, tenant authorization,
+audit fields, and optimistic locking. Repository, service, and API integration
+tests are in place and passing. No meter, telemetry, energy, carbon, tariff,
+forecast, alert, or analytics features have been implemented.
 
 ## Completed Work
 
@@ -49,75 +49,69 @@ implemented.
 
 - Created backend, frontend, infrastructure, scripts, root metadata, and local
   Docker Compose services (PostgreSQL, Kafka, Redis) with health checks.
-- Wired environment-driven configuration and committed the technical foundation.
 
 ### Phase 7 — Identity and Access Control
 
-- Added JWT dependencies (jjwt), SpringDoc OpenAPI, and H2 for tests.
-- Enabled Flyway and configured production/test `application.yml` profiles.
-- Created Flyway migrations for `org.organization` and `iam.app_user`, `iam.role`,
-  `iam.permission`, `iam.role_permission`, `iam.user_organization`,
-  `iam.role_assignment`, and `iam.refresh_token`.
-- Seeded system roles and permissions with an idempotent Java migration.
-- Implemented JPA entities for Organization, User, Role, Permission,
-  UserOrganization, RoleAssignment, and RefreshToken.
-- Implemented stateless JWT authentication with `Authorization: Bearer` access
-  tokens and opaque refresh-token hashes.
-- Implemented refresh-token rotation: old token revoked, new token issued on
-  every refresh.
-- Implemented logout as refresh-token revocation.
-- Implemented BCrypt password hashing (strength 12).
-- Implemented `INVITED`, `ACTIVE`, and `SUSPENDED` account states; suspended users
-  cannot authenticate or use access tokens.
-- Configurable token expiry through `JWT_ACCESS_EXPIRATION_MS` and
-  `JWT_REFRESH_EXPIRATION_MS`.
-- Implemented RBAC with six predefined roles:
-  - `PLATFORM_ADMIN`
-  - `ORGANIZATION_ADMIN`
-  - `FACILITY_MANAGER`
-  - `ENERGY_ANALYST`
-  - `SUSTAINABILITY_MANAGER`
-  - `VIEWER`
-- Implemented tenant isolation via `X-Organization-Id` header and membership
-  checks. Platform administrators can access any organization; other users can
-  only access organizations where they have an active membership and at least
-  one active role assignment.
-- Added `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`,
-  `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`, and
-  `GET /api/v1/organizations/{id}`.
-- Added standardized `application/problem+json` error responses for 400, 401,
-  403, 404, and 500 with stable machine-readable codes and correlation ids.
-- Added development-only seed admin mechanism configurable through environment
-  variables (`DEV_ADMIN_EMAIL`, `DEV_ADMIN_PASSWORD`, etc.).
-- Added OpenAPI contract at `contracts/openapi/identity.yaml` and SpringDoc UI
-  support.
-- Updated `docs/SECURITY.md` with the full authentication, authorization,
-  tenant-isolation, and token-rotation design.
+- Implemented JWT authentication, refresh-token rotation, RBAC, organization-level
+  tenant isolation, Flyway-managed identity schema, standardized errors, and
+  integration tests.
+
+### Phase 8 — Organization and Facility Domain
+
+- Added Flyway migration `V1_1_0__facility_schema.sql` for `org.site`,
+  `org.building`, and `org.zone` tables with indexes and constraints.
+- Implemented JPA entities for `Site`, `Building`, and `Zone` extending the
+  audited base entity with optimistic locking.
+- Implemented DTOs, validation, and service-layer mapping for all four hierarchy
+  levels.
+- Implemented CRUD and soft-delete (archive) lifecycle management:
+  - `OrganizationService`
+  - `SiteService`
+  - `BuildingService`
+  - `ZoneService`
+- Implemented REST controllers with nested tenant-aware URLs:
+  - `/api/v1/organizations`
+  - `/api/v1/organizations/{orgId}/sites`
+  - `/api/v1/organizations/{orgId}/sites/{siteId}/buildings`
+  - `/api/v1/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones`
+- Added pagination, sorting, and search with allowlisted sort fields.
+- Enforced tenant boundaries using the existing `X-Organization-Id` header and
+  `TenantGuard` path checks.
+- Added business validation: IANA timezone validation, latitude/longitude and
+  floor-area constraints, closed-on-after-opened date checks, and parent/child
+  ownership checks.
+- Updated `GlobalExceptionHandler` to map `IllegalArgumentException` to HTTP 400.
+- Added OpenAPI specification `contracts/openapi/facilities.yaml`.
+- Added tests:
+  - `SiteRepositoryTest` — repository pagination, search, tenant-safe lookups,
+    audit fields.
+  - `SiteServiceTest` — duplicate-code and invalid-timezone validation.
+  - `FacilityApiIntegrationTest` — full CRUD lifecycle, pagination, sorting,
+    search, building/zone hierarchy, tenant isolation, unauthorized role, and
+    validation error scenarios.
 
 ## Changed Files
 
-### Phase 7
+### Phase 8
 
-- `backend/pom.xml` — added jjwt, springdoc-openapi, and H2 test dependencies.
-- `backend/src/main/resources/application.yml` — enabled Flyway, added JWT and
-  dev-admin configuration.
-- `backend/src/test/resources/application-test.yml` — H2 test profile.
-- `backend/src/main/resources/db/migration/V1_0_0__identity_and_organization_foundation.sql`
-- `backend/src/main/java/db/migration/V1_0_1__SeedRolesAndPermissions.java`
-- `backend/src/main/java/com/enerlytics/config/JpaConfig.java`
-- `backend/src/main/java/com/enerlytics/config/OpenApiConfig.java`
-- `backend/src/main/java/com/enerlytics/config/SecurityConfig.java`
-- `backend/src/main/java/com/enerlytics/config/DevelopmentIdentitySeeder.java`
-- `backend/src/main/java/com/enerlytics/common/domain/AuditedEntity.java`
-- `backend/src/main/java/com/enerlytics/common/api/Problem.java`
+- `backend/src/main/resources/db/migration/V1_1_0__facility_schema.sql`
+- `backend/src/main/java/com/enerlytics/facility/**`
+- `backend/src/main/java/com/enerlytics/organization/api/OrganizationController.java`
+- `backend/src/main/java/com/enerlytics/organization/api/dto/CreateOrganizationRequest.java`
+- `backend/src/main/java/com/enerlytics/organization/api/dto/UpdateOrganizationRequest.java`
+- `backend/src/main/java/com/enerlytics/organization/api/dto/OrganizationResponse.java`
+- `backend/src/main/java/com/enerlytics/organization/application/OrganizationService.java`
+- `backend/src/main/java/com/enerlytics/organization/domain/OrganizationEntity.java`
+- `backend/src/main/java/com/enerlytics/common/api/PageResponse.java`
+- `backend/src/main/java/com/enerlytics/common/api/PageableFactory.java`
+- `backend/src/main/java/com/enerlytics/security/tenant/TenantGuard.java`
 - `backend/src/main/java/com/enerlytics/common/api/GlobalExceptionHandler.java`
-- `backend/src/main/java/com/enerlytics/identity/**`
-- `backend/src/main/java/com/enerlytics/organization/**`
-- `backend/src/main/java/com/enerlytics/security/**`
-- `backend/src/test/java/com/enerlytics/identity/IdentityIntegrationTest.java`
-- `contracts/openapi/identity.yaml`
-- `docs/SECURITY.md`
-- `.env.example`
+- `backend/src/test/java/com/enerlytics/facility/SiteRepositoryTest.java`
+- `backend/src/test/java/com/enerlytics/facility/SiteServiceTest.java`
+- `backend/src/test/java/com/enerlytics/facility/FacilityApiIntegrationTest.java`
+- `contracts/openapi/facilities.yaml`
+- `docs/PROJECT_STATE.md`
+- `README.md`
 
 ### Existing Documentation
 
@@ -126,6 +120,7 @@ implemented.
 - `docs/DATA_MODEL.md`
 - `docs/EVENT_ARCHITECTURE.md`
 - `docs/CALCULATION_SPEC.md`
+- `docs/SECURITY.md`
 - `docs/ADR/README.md`
 - `docs/ADR/0001-modular-monolith.md`
 - `docs/ADR/0002-deployment-topology-and-service-boundaries.md`
@@ -135,7 +130,6 @@ implemented.
 - `docs/TEST_STRATEGY.md`
 - `docs/DEPLOYMENT.md`
 - `docs/CHANGELOG.md`
-- `README.md`
 
 ## Technology Versions
 
@@ -164,16 +158,11 @@ Results:
 
 - `EnerlyticsBackendApplicationTests`: 1/1 passed
 - `IdentityIntegrationTest`: 9/9 passed
-  - `validLoginReturnsTokens`
-  - `invalidCredentialsReturn401`
-  - `disabledAccountCannotLogin`
-  - `expiredAccessTokenIsRejected`
-  - `refreshFlowRotatesTokenAndRevokesOldOne`
-  - `logoutRevokesRefreshToken`
-  - `userWithoutRequiredRoleIsDenied`
-  - `crossTenantAccessIsDenied`
-  - `platformAdminCanAccessAnyOrganization`
-- Package build produced `backend/target/enerlytics-backend-0.0.1-SNAPSHOT.jar`.
+- `SiteRepositoryTest`: 5/5 passed
+- `SiteServiceTest`: 3/3 passed
+- `FacilityApiIntegrationTest`: 6/6 passed
+- Total: 24 tests passed, 0 failures
+- Package build produced the Spring Boot executable JAR.
 
 ### Frontend
 
@@ -184,37 +173,32 @@ remains valid.
 
 - No real credentials are committed.
 - `.env.example` contains only placeholder configuration keys.
-- JWT secrets and dev-admin credentials must be supplied through environment
-  variables; the application refuses to start if a JWT secret is shorter than
-  32 characters.
 
 ## Unresolved Issues
 
-### Identity/OAuth2
+### Facility Domain
 
-- Only local password authentication is implemented. OIDC/OAuth2 integration will
-  be added when a provider and claim-mapping rules are approved.
-- Password reset, email verification, invitation flows, and MFA are deferred to
-  a later phase.
-- The user-info endpoint returns all memberships. A chosen-active-organization
-  endpoint and organization-switching flow may be needed for users with many
-  organizations.
+- No address normalization, geocoding, or country-specific validation yet.
+- Site/building/zone effective-dated changes and versioning are not implemented.
+- Parent hierarchy validation does not enforce building belongs to site across
+  the entire update surface (service-level checks exist; no DB exclusion
+  constraint for future moves).
+- Soft-delete archive behavior does not cascade to children; deleting a site with
+  active buildings/zones is currently allowed.
 
-### RBAC
+### Pagination and Sorting
 
-- Site/building-scoped assignments are modeled but not enforced because no site or
-  building endpoints exist yet.
-- Custom per-organization roles are not yet supported.
-- Permission checks currently use permission strings in
-  `@PreAuthorize("hasAuthority('...')")`. A custom expression helper may be
-  introduced once tenant-scoped checks become more common.
+- `PageableFactory` only accepts pairs of `property,direction` and silently
+  ignores an odd trailing element. A more robust parser should be added if
+  clients need multi-column sorting with arbitrary defaults.
+- Maximum page size is hardcoded at 100.
 
-### Token Management
+### Organization Management
 
-- Refresh-token family detection and reuse detection are not implemented.
-- There is no scheduled cleanup of expired revoked refresh tokens.
-- Access tokens are not explicitly blacklisted on logout; they remain valid until
-  their short expiry.
+- `POST /api/v1/organizations` is restricted to `PLATFORM_ADMIN`. A product
+  decision is needed on whether organization admins can create sub-organizations.
+- Listing organizations for the current user is only available through
+  `GET /auth/me`; a dedicated paginated `/organizations` list may be needed.
 
 ### Local Tooling
 
@@ -223,26 +207,25 @@ remains valid.
 
 ## Technical Debt
 
-- `SecurityConfig` uses a deprecation-deprecated `ProviderManager` constructor.
-  This should be replaced with the non-deprecated
-  `ProviderManager(AuthenticationProvider...)` constructor in a follow-up.
-- `GlobalExceptionHandler` uses a generated UUID per error; the framework's
-  request-scoped correlation ID should be used once distributed tracing is
-  configured.
-- The `OrganizationController` tenant check duplicates the filter's membership
-  check. A shared tenant-aware annotation or expression would reduce repetition.
-- H2 is used for tests. CI should run integration tests against PostgreSQL before
-  accepting business-domain changes.
+- `SecurityConfig` still emits a Spring Security deprecation warning. The
+  deprecated usage should be identified and removed.
+- The test utility for creating users/organizations/tokens is duplicated between
+  `IdentityIntegrationTest` and `FacilityApiIntegrationTest`; extract a shared
+  test helper when the next domain module is added.
+- `IllegalArgumentException` is mapped globally to HTTP 400, which may catch
+  unintended runtime cases. Consider domain-specific exceptions for business
+  rule failures.
+- `GlobalExceptionHandler` uses a generated UUID per error; framework-level
+  correlation propagation should replace it once tracing is configured.
 
 ## Next Recommended Task
 
-1. Set up CI with PostgreSQL, Kafka, and Redis services so tests run against the
-   real backing stores.
-2. Implement the next bounded domain module (e.g., `organization` admin CRUD or
-   `site` hierarchy) behind the new RBAC and tenant boundaries.
-3. Add password reset/invitation flows or OIDC integration based on product
-   priorities.
-4. Introduce audit logging for security-relevant events (login, logout, role
-   changes, cross-tenant denials).
-5. Begin the telemetry ingestion and meter-reading domain once identity is
-   proven in CI.
+1. Set up CI to run the full backend test suite against PostgreSQL.
+2. Implement the meter/channel domain and telemetry ingestion endpoints, keeping
+   the same tenant and audit patterns.
+3. Introduce a shared test fixture helper for users, organizations, roles,
+   and tokens.
+4. Add audit logging for facility lifecycle mutations (create, update, archive)
+   before production use.
+5. Decide on effective-dated site/building/zone versioning and implement it if
+   required by the product.

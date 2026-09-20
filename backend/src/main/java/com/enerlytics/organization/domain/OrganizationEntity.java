@@ -74,4 +74,25 @@ public class OrganizationEntity extends AuditedEntity {
     public void setStatus(OrganizationStatus status) {
         this.status = status;
     }
+
+    public void setDefaultCurrency(String defaultCurrency) {
+        this.defaultCurrency = defaultCurrency;
+    }
+
+    public void setFiscalYearStartMonth(Integer fiscalYearStartMonth) {
+        this.fiscalYearStartMonth = fiscalYearStartMonth;
+    }
+
+    public void setLocale(String locale) {
+        this.locale = locale;
+    }
+
+    public void setArchivedAt(Instant archivedAt) {
+        this.archivedAt = archivedAt;
+    }
+
+    public void archive() {
+        this.status = OrganizationStatus.ARCHIVED;
+        this.archivedAt = Instant.now();
+    }
 }

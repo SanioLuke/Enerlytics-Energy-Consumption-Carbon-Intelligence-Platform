@@ -112,7 +112,25 @@ The backend exposes the following identity endpoints under `/api/v1`:
 | `POST` | `/auth/refresh` | Rotate refresh token into a new token pair. |
 | `POST` | `/auth/logout` | Revoke the supplied refresh token. |
 | `GET`  | `/auth/me` | Get the current user's profile and memberships. |
+| `POST` | `/organizations` | Create an organization (`PLATFORM_ADMIN`). |
 | `GET`  | `/organizations/{id}` | Read an organization (requires `organization:read`). |
+| `PUT`  | `/organizations/{id}` | Update an organization (requires `organization:write`). |
+| `DELETE` | `/organizations/{id}` | Archive an organization (requires `organization:write`). |
+| `POST` | `/organizations/{orgId}/sites` | Create a site (requires `site:write`). |
+| `GET`  | `/organizations/{orgId}/sites` | List/search sites (requires `site:read`). |
+| `GET`  | `/organizations/{orgId}/sites/{siteId}` | Read a site (requires `site:read`). |
+| `PUT`  | `/organizations/{orgId}/sites/{siteId}` | Update a site (requires `site:write`). |
+| `DELETE` | `/organizations/{orgId}/sites/{siteId}` | Archive a site (requires `site:write`). |
+| `POST` | `/organizations/{orgId}/sites/{siteId}/buildings` | Create a building (requires `site:write`). |
+| `GET`  | `/organizations/{orgId}/sites/{siteId}/buildings` | List/search buildings (requires `site:read`). |
+| `GET`  | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}` | Read a building (requires `site:read`). |
+| `PUT`  | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}` | Update a building (requires `site:write`). |
+| `DELETE` | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}` | Archive a building (requires `site:write`). |
+| `POST` | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones` | Create a zone (requires `site:write`). |
+| `GET`  | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones` | List/search zones (requires `site:read`). |
+| `GET`  | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones/{zoneId}` | Read a zone (requires `site:read`). |
+| `PUT`  | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones/{zoneId}` | Update a zone (requires `site:write`). |
+| `DELETE` | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones/{zoneId}` | Archive a zone (requires `site:write`). |
 
 All authenticated requests must include:
 
@@ -140,13 +158,13 @@ Never commit secrets, API keys, or production credentials.
 
 ## Bootstrap scope
 
-The repository bootstrap and identity foundation are complete. The following are
-intentionally absent and will be added in later phases:
+The repository bootstrap, identity, and organization/facility domains are complete.
+The following are intentionally absent and will be added in later phases:
 
 - Kafka producers/consumers and telemetry processing logic
 - Energy, cost, carbon, tariff, forecast, alert, and analytics features
 - Angular dashboards, reports, and user workflows
-- Site, building, meter, and facility management endpoints
+- Meters, channels, and meter-reading endpoints
 
 What is currently present:
 
