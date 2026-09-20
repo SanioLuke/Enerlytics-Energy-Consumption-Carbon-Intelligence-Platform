@@ -131,6 +131,16 @@ The backend exposes the following identity endpoints under `/api/v1`:
 | `GET`  | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones/{zoneId}` | Read a zone (requires `site:read`). |
 | `PUT`  | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones/{zoneId}` | Update a zone (requires `site:write`). |
 | `DELETE` | `/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones/{zoneId}` | Archive a zone (requires `site:write`). |
+| `POST`   | `/organizations/{orgId}/meters` | Register a meter (requires `meter:write`). |
+| `GET`    | `/organizations/{orgId}/meters` | List/search meters (requires `meter:read`). |
+| `GET`    | `/organizations/{orgId}/meters/{meterId}` | Read a meter (requires `meter:read`). |
+| `PUT`    | `/organizations/{orgId}/meters/{meterId}` | Update a meter (requires `meter:write`). |
+| `POST`   | `/organizations/{orgId}/meters/{meterId}/activate` | Activate a meter (requires `meter:write`). |
+| `POST`   | `/organizations/{orgId}/meters/{meterId}/deactivate` | Deactivate a meter (requires `meter:write`). |
+| `POST`   | `/organizations/{orgId}/meters/{meterId}/commission` | Commission a meter (requires `meter:write`). |
+| `POST`   | `/organizations/{orgId}/meters/{meterId}/decommission` | Decommission a meter (requires `meter:write`). |
+| `POST`   | `/organizations/{orgId}/meters/{meterId}/location` | Assign meter location (requires `meter:write`). |
+| `POST`   | `/organizations/{orgId}/meters/{meterId}/heartbeat` | Record a meter heartbeat (requires `meter:write`). |
 
 All authenticated requests must include:
 
@@ -164,7 +174,7 @@ The following are intentionally absent and will be added in later phases:
 - Kafka producers/consumers and telemetry processing logic
 - Energy, cost, carbon, tariff, forecast, alert, and analytics features
 - Angular dashboards, reports, and user workflows
-- Meters, channels, and meter-reading endpoints
+- Telemetry ingestion and meter-reading endpoints
 
 What is currently present:
 

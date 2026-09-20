@@ -1,0 +1,458 @@
+openapi: 3.0.3
+info:
+  title: Enerlytics Meters API
+  version: 1.0.0
+  description: Electricity meter registration, lifecycle, and heartbeat endpoints.
+servers:
+  - url: http://localhost:8080/api/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /organizations/{orgId}/meters:
+    post:
+      summary: Register a meter
+      tags: [Meters]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMeterRequest'
+      responses:
+        '201':
+          description: Meter created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      summary: List and search meters
+      tags: [Meters]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: siteId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: buildingId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: zoneId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PROVISIONING, ACTIVE, OFFLINE, MAINTENANCE, DECOMMISSIONED]
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: sort
+          in: query
+          schema:
+            type: array
+            items: { type: string }
+      responses:
+        '200':
+          description: Paged list of meters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageMeterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /organizations/{orgId}/meters/{meterId}:
+    get:
+      summary: Get a meter
+      tags: [Meters]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: meterId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Meter details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a meter
+      tags: [Meters]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: meterId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMeterRequest'
+      responses:
+        '200':
+          description: Meter updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /organizations/{orgId}/meters/{meterId}/activate:
+    post:
+      summary: Activate a meter
+      tags: [Meters]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: meterId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /organizations/{orgId}/meters/{meterId}/deactivate:
+    post:
+      summary: Deactivate a meter
+      tags: [Meters]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: meterId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Deactivated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /organizations/{orgId}/meters/{meterId}/commission:
+    post:
+      summary: Commission a meter
+      tags: [Meters]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: meterId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Commissioned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /organizations/{orgId}/meters/{meterId}/decommission:
+    post:
+      summary: Decommission a meter
+      tags: [Meters]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: meterId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Decommissioned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /organizations/{orgId}/meters/{meterId}/location:
+    post:
+      summary: Assign meter location
+      tags: [Meters]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: meterId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignLocationRequest'
+      responses:
+        '200':
+          description: Location assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /organizations/{orgId}/meters/{meterId}/heartbeat:
+    post:
+      summary: Record meter heartbeat
+      tags: [Meters]
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: meterId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Heartbeat recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CreateMeterRequest:
+      type: object
+      required: [code, name, meterType, readingIntervalSeconds, unit, siteId]
+      properties:
+        code: { type: string, maxLength: 64 }
+        name: { type: string, maxLength: 200 }
+        serialNumber: { type: string, maxLength: 100 }
+        manufacturer: { type: string, maxLength: 100 }
+        model: { type: string, maxLength: 100 }
+        meterType:
+          type: string
+          enum: [ELECTRICITY, GAS, WATER, THERMAL, GENERATION, OTHER]
+        installationDate: { type: string, format: date }
+        readingIntervalSeconds: { type: integer, minimum: 1, maximum: 3600 }
+        unit: { type: string, maxLength: 20 }
+        siteId: { type: string, format: uuid }
+        buildingId: { type: string, format: uuid }
+        zoneId: { type: string, format: uuid }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+
+    UpdateMeterRequest:
+      type: object
+      properties:
+        name: { type: string, maxLength: 200 }
+        serialNumber: { type: string, maxLength: 100 }
+        manufacturer: { type: string, maxLength: 100 }
+        model: { type: string, maxLength: 100 }
+        meterType:
+          type: string
+          enum: [ELECTRICITY, GAS, WATER, THERMAL, GENERATION, OTHER]
+        installationDate: { type: string, format: date }
+        readingIntervalSeconds: { type: integer, minimum: 1, maximum: 3600 }
+        unit: { type: string, maxLength: 20 }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+
+    AssignLocationRequest:
+      type: object
+      required: [siteId]
+      properties:
+        siteId: { type: string, format: uuid }
+        buildingId: { type: string, format: uuid }
+        zoneId: { type: string, format: uuid }
+
+    MeterResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        organizationId: { type: string, format: uuid }
+        siteId: { type: string, format: uuid }
+        buildingId: { type: string, format: uuid }
+        zoneId: { type: string, format: uuid }
+        code: { type: string }
+        name: { type: string }
+        serialNumber: { type: string }
+        manufacturer: { type: string }
+        model: { type: string }
+        meterType:
+          type: string
+          enum: [ELECTRICITY, GAS, WATER, THERMAL, GENERATION, OTHER]
+        installationDate: { type: string, format: date }
+        status:
+          type: string
+          enum: [PROVISIONING, ACTIVE, OFFLINE, MAINTENANCE, DECOMMISSIONED]
+        readingIntervalSeconds: { type: integer }
+        unit: { type: string }
+        lastSeenAt: { type: string, format: date-time }
+        commissionedAt: { type: string, format: date-time }
+        decommissionedAt: { type: string, format: date-time }
+        metadata:
+          type: object
+          additionalProperties: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        version: { type: integer }
+
+    PageMeterResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeterResponse'
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+        totalPages: { type: integer }
+
+    Problem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        correlationId: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'

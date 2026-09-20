@@ -2,12 +2,12 @@
 
 ## Current Phase
 
-Phase 8 — Organization and facility domain complete. CRUD and lifecycle
-management are implemented for `Organization`, `Site`, `Building`, and `Zone`
-with DTOs, validation, pagination, sorting, search, tenant authorization,
-audit fields, and optimistic locking. Repository, service, and API integration
-tests are in place and passing. No meter, telemetry, energy, carbon, tariff,
-forecast, alert, or analytics features have been implemented.
+Phase 9 — Production-grade electricity meter management complete. Meters can be
+registered, updated, activated, deactivated, commissioned, decommissioned,
+located within the facility hierarchy, listed, searched, and heartbeats can
+record last-seen time. All operations are secured by tenant-aware
+authorization. Repository, service, and API integration tests pass. No telemetry
+ingestion, energy, carbon, tariff, or analytics features have been implemented.
 
 ## Completed Work
 
@@ -58,60 +58,62 @@ forecast, alert, or analytics features have been implemented.
 
 ### Phase 8 — Organization and Facility Domain
 
-- Added Flyway migration `V1_1_0__facility_schema.sql` for `org.site`,
-  `org.building`, and `org.zone` tables with indexes and constraints.
-- Implemented JPA entities for `Site`, `Building`, and `Zone` extending the
-  audited base entity with optimistic locking.
-- Implemented DTOs, validation, and service-layer mapping for all four hierarchy
-  levels.
-- Implemented CRUD and soft-delete (archive) lifecycle management:
-  - `OrganizationService`
-  - `SiteService`
-  - `BuildingService`
-  - `ZoneService`
-- Implemented REST controllers with nested tenant-aware URLs:
-  - `/api/v1/organizations`
-  - `/api/v1/organizations/{orgId}/sites`
-  - `/api/v1/organizations/{orgId}/sites/{siteId}/buildings`
-  - `/api/v1/organizations/{orgId}/sites/{siteId}/buildings/{buildingId}/zones`
-- Added pagination, sorting, and search with allowlisted sort fields.
-- Enforced tenant boundaries using the existing `X-Organization-Id` header and
-  `TenantGuard` path checks.
-- Added business validation: IANA timezone validation, latitude/longitude and
-  floor-area constraints, closed-on-after-opened date checks, and parent/child
-  ownership checks.
-- Updated `GlobalExceptionHandler` to map `IllegalArgumentException` to HTTP 400.
-- Added OpenAPI specification `contracts/openapi/facilities.yaml`.
+- Implemented CRUD and lifecycle for `Organization`, `Site`, `Building`, and `Zone`
+  with DTOs, validation, pagination, sorting, search, tenant authorization, audit
+  fields, and optimistic locking.
+
+### Phase 9 — Meter Management
+
+- Added Flyway migration `V1_2_0__meter_schema.sql` for `telemetry.meter`.
+- Implemented `MeterEntity`, `MeterStatus`, `MeterType`, and DTOs with validation.
+- Implemented `MeterService` with:
+  - register meter
+  - update meter
+  - activate / deactivate
+  - commission / decommission
+  - assign location
+  - list/search with filters
+  - heartbeat / last-seen tracking
+- Implemented `MeterController` under `/api/v1/organizations/{orgId}/meters` with
+  tenant authorization using `TenantGuard` and `meter:read` / `meter:write`
+  permissions.
+- Enforced parent ownership checks for site/building/zone.
+- Added business validation for reading interval, duplicate meter codes, and
+  decommissioned-meter state changes.
+- Added `MeterRepository` with JPA Specifications for combined filtering, search,
+  and pagination.
 - Added tests:
-  - `SiteRepositoryTest` — repository pagination, search, tenant-safe lookups,
-    audit fields.
-  - `SiteServiceTest` — duplicate-code and invalid-timezone validation.
-  - `FacilityApiIntegrationTest` — full CRUD lifecycle, pagination, sorting,
-    search, building/zone hierarchy, tenant isolation, unauthorized role, and
-    validation error scenarios.
+  - `MeterRepositoryTest` — tenant-safe lookups, code uniqueness, status filtering.
+  - `MeterServiceTest` — create, duplicate code, status activation.
+  - `MeterApiIntegrationTest` — full lifecycle, search, location assignment,
+    heartbeat, viewer authorization denial, invalid interval validation.
+- Added OpenAPI contract `contracts/openapi/meters.yaml`.
 
 ## Changed Files
 
-### Phase 8
+### Phase 9
+
+- `backend/src/main/resources/db/migration/V1_2_0__meter_schema.sql`
+- `backend/src/main/java/com/enerlytics/meter/**`
+- `backend/src/test/java/com/enerlytics/meter/MeterRepositoryTest.java`
+- `backend/src/test/java/com/enerlytics/meter/MeterServiceTest.java`
+- `backend/src/test/java/com/enerlytics/meter/MeterApiIntegrationTest.java`
+- `contracts/openapi/meters.yaml`
+- `docs/PROJECT_STATE.md`
+- `README.md`
+
+### Previous Phases
 
 - `backend/src/main/resources/db/migration/V1_1_0__facility_schema.sql`
 - `backend/src/main/java/com/enerlytics/facility/**`
-- `backend/src/main/java/com/enerlytics/organization/api/OrganizationController.java`
-- `backend/src/main/java/com/enerlytics/organization/api/dto/CreateOrganizationRequest.java`
-- `backend/src/main/java/com/enerlytics/organization/api/dto/UpdateOrganizationRequest.java`
-- `backend/src/main/java/com/enerlytics/organization/api/dto/OrganizationResponse.java`
-- `backend/src/main/java/com/enerlytics/organization/application/OrganizationService.java`
-- `backend/src/main/java/com/enerlytics/organization/domain/OrganizationEntity.java`
+- `backend/src/main/java/com/enerlytics/organization/**`
 - `backend/src/main/java/com/enerlytics/common/api/PageResponse.java`
 - `backend/src/main/java/com/enerlytics/common/api/PageableFactory.java`
 - `backend/src/main/java/com/enerlytics/security/tenant/TenantGuard.java`
-- `backend/src/main/java/com/enerlytics/common/api/GlobalExceptionHandler.java`
-- `backend/src/test/java/com/enerlytics/facility/SiteRepositoryTest.java`
-- `backend/src/test/java/com/enerlytics/facility/SiteServiceTest.java`
-- `backend/src/test/java/com/enerlytics/facility/FacilityApiIntegrationTest.java`
 - `contracts/openapi/facilities.yaml`
-- `docs/PROJECT_STATE.md`
-- `README.md`
+- `backend/src/main/java/com/enerlytics/identity/**`
+- `contracts/openapi/identity.yaml`
+- `docs/SECURITY.md`
 
 ### Existing Documentation
 
@@ -120,7 +122,6 @@ forecast, alert, or analytics features have been implemented.
 - `docs/DATA_MODEL.md`
 - `docs/EVENT_ARCHITECTURE.md`
 - `docs/CALCULATION_SPEC.md`
-- `docs/SECURITY.md`
 - `docs/ADR/README.md`
 - `docs/ADR/0001-modular-monolith.md`
 - `docs/ADR/0002-deployment-topology-and-service-boundaries.md`
@@ -161,7 +162,10 @@ Results:
 - `SiteRepositoryTest`: 5/5 passed
 - `SiteServiceTest`: 3/3 passed
 - `FacilityApiIntegrationTest`: 6/6 passed
-- Total: 24 tests passed, 0 failures
+- `MeterRepositoryTest`: 3/3 passed
+- `MeterServiceTest`: 3/3 passed
+- `MeterApiIntegrationTest`: 4/4 passed
+- **Total: 34 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
 
 ### Frontend
@@ -176,15 +180,23 @@ remains valid.
 
 ## Unresolved Issues
 
+### Meter Domain
+
+- No meter channel abstraction yet; all readings will be associated with a single
+  meter entity until multi-channel meters are modeled.
+- No physical device provisioning flow or per-device credentials.
+- Metadata is stored as a JSON string; typed JSONB with a schema registry should
+  be introduced when telemetry attributes become more complex.
+- No automated transition from `OFFLINE` to `ACTIVE` based on heartbeat age.
+
 ### Facility Domain
 
-- No address normalization, geocoding, or country-specific validation yet.
-- Site/building/zone effective-dated changes and versioning are not implemented.
+- No address normalization, geocoding, or country-specific validation.
+- Effective dating and versioning of sites/buildings/zones are not implemented.
 - Parent hierarchy validation does not enforce building belongs to site across
   the entire update surface (service-level checks exist; no DB exclusion
   constraint for future moves).
-- Soft-delete archive behavior does not cascade to children; deleting a site with
-  active buildings/zones is currently allowed.
+- Soft-delete archive behavior does not cascade to children.
 
 ### Pagination and Sorting
 
@@ -209,9 +221,9 @@ remains valid.
 
 - `SecurityConfig` still emits a Spring Security deprecation warning. The
   deprecated usage should be identified and removed.
-- The test utility for creating users/organizations/tokens is duplicated between
-  `IdentityIntegrationTest` and `FacilityApiIntegrationTest`; extract a shared
-  test helper when the next domain module is added.
+- The test utility for creating users/organizations/tokens is duplicated across
+  integration tests; extract a shared test helper before adding the next domain
+  module.
 - `IllegalArgumentException` is mapped globally to HTTP 400, which may catch
   unintended runtime cases. Consider domain-specific exceptions for business
   rule failures.
@@ -221,11 +233,10 @@ remains valid.
 ## Next Recommended Task
 
 1. Set up CI to run the full backend test suite against PostgreSQL.
-2. Implement the meter/channel domain and telemetry ingestion endpoints, keeping
-   the same tenant and audit patterns.
-3. Introduce a shared test fixture helper for users, organizations, roles,
-   and tokens.
-4. Add audit logging for facility lifecycle mutations (create, update, archive)
-   before production use.
-5. Decide on effective-dated site/building/zone versioning and implement it if
-   required by the product.
+2. Implement telemetry ingestion endpoints and Kafka outbox/event publishing for
+   `MeterReadingReceived` events, keeping tenant and idempotency guarantees.
+3. Extract a shared test fixture helper for users, organizations, roles, and
+   tokens.
+4. Add audit logging for meter lifecycle mutations (create, update, commission,
+   decommission) before production use.
+5. Introduce meter channels and physical-device credential provisioning.
