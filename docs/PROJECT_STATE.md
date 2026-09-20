@@ -2,12 +2,11 @@
 
 ## Current Phase
 
-Phase 9 — Production-grade electricity meter management complete. Meters can be
-registered, updated, activated, deactivated, commissioned, decommissioned,
-located within the facility hierarchy, listed, searched, and heartbeats can
-record last-seen time. All operations are secured by tenant-aware
-authorization. Repository, service, and API integration tests pass. No telemetry
-ingestion, energy, carbon, tariff, or analytics features have been implemented.
+Phase 10 — Realistic smart-meter telemetry simulator implemented as a dedicated
+runnable Spring Boot component. It produces `MeterReadingReceived` Kafka events
+for active simulated meters with profile-based load curves, deterministic seeding,
+simulation acceleration, and metrics. Ingestion consumers and downstream event
+processors remain future work.
 
 ## Completed Work
 
@@ -64,54 +63,61 @@ ingestion, energy, carbon, tariff, or analytics features have been implemented.
 
 ### Phase 9 — Meter Management
 
-- Added Flyway migration `V1_2_0__meter_schema.sql` for `telemetry.meter`.
-- Implemented `MeterEntity`, `MeterStatus`, `MeterType`, and DTOs with validation.
-- Implemented `MeterService` with:
-  - register meter
-  - update meter
-  - activate / deactivate
-  - commission / decommission
-  - assign location
-  - list/search with filters
-  - heartbeat / last-seen tracking
-- Implemented `MeterController` under `/api/v1/organizations/{orgId}/meters` with
-  tenant authorization using `TenantGuard` and `meter:read` / `meter:write`
-  permissions.
-- Enforced parent ownership checks for site/building/zone.
-- Added business validation for reading interval, duplicate meter codes, and
-  decommissioned-meter state changes.
-- Added `MeterRepository` with JPA Specifications for combined filtering, search,
-  and pagination.
+- Implemented registration, lifecycle, location assignment, search/filtering,
+  heartbeat, and last-seen tracking for electricity meters with tenant authorization
+  and tests.
+
+### Phase 10 — Telemetry Simulator
+
+- Added Flyway migration `V1_3_0__add_meter_simulation_columns.sql` to mark meters
+  as simulated and store their simulation profile.
+- Created a new Maven module `backend/telemetry-simulator` with its own
+  Spring Boot application and configuration.
+- Implemented `MeterSource` JDBC reader for active simulated meters.
+- Implemented `LoadProfileCalculator` with profile-specific curves for OFFICE,
+  DATA_CENTER, WAREHOUSE, RETAIL, MANUFACTURING, and RESIDENTIAL.
+- Implemented `TelemetryGenerator` with deterministic event IDs, seeded randomness,
+  energy/power/current/power-factor/frequency/quality generation, and anomaly
+  injection.
+- Implemented `TelemetryEventProducer` using Spring Kafka with idempotent producer
+  settings.
+- Implemented `SimulatorEngine` with tick-based virtual time, acceleration,
+  per-meter scheduling, startup/shutdown lifecycle, and refresh of the active meter
+  registry.
+- Added Micrometer metrics (`telemetry.simulator.produced`,
+  `telemetry.simulator.failed`, `telemetry.simulator.active_meters`).
 - Added tests:
-  - `MeterRepositoryTest` — tenant-safe lookups, code uniqueness, status filtering.
-  - `MeterServiceTest` — create, duplicate code, status activation.
-  - `MeterApiIntegrationTest` — full lifecycle, search, location assignment,
-    heartbeat, viewer authorization denial, invalid interval validation.
-- Added OpenAPI contract `contracts/openapi/meters.yaml`.
+  - `LoadProfileCalculatorTest`
+  - `TelemetryGeneratorTest`
+  - `SimulatorEngineTest`
+  - `TelemetryEventProducerTest`
+- Updated `docs/EVENT_ARCHITECTURE.md` with the simulator's role, event fields,
+  and configuration.
 
 ## Changed Files
 
-### Phase 9
+### Phase 10
 
-- `backend/src/main/resources/db/migration/V1_2_0__meter_schema.sql`
-- `backend/src/main/java/com/enerlytics/meter/**`
-- `backend/src/test/java/com/enerlytics/meter/MeterRepositoryTest.java`
-- `backend/src/test/java/com/enerlytics/meter/MeterServiceTest.java`
-- `backend/src/test/java/com/enerlytics/meter/MeterApiIntegrationTest.java`
-- `contracts/openapi/meters.yaml`
+- `backend/src/main/resources/db/migration/V1_3_0__add_meter_simulation_columns.sql`
+- `backend/telemetry-simulator/pom.xml`
+- `backend/telemetry-simulator/src/main/resources/application.yml`
+- `backend/telemetry-simulator/src/main/java/com/enerlytics/simulator/**`
+- `backend/telemetry-simulator/src/test/java/com/enerlytics/simulator/**`
+- `docs/EVENT_ARCHITECTURE.md`
 - `docs/PROJECT_STATE.md`
 - `README.md`
+- `.env.example`
 
 ### Previous Phases
 
+- `backend/src/main/resources/db/migration/V1_2_0__meter_schema.sql`
+- `backend/src/main/java/com/enerlytics/meter/**`
+- `contracts/openapi/meters.yaml`
 - `backend/src/main/resources/db/migration/V1_1_0__facility_schema.sql`
 - `backend/src/main/java/com/enerlytics/facility/**`
 - `backend/src/main/java/com/enerlytics/organization/**`
-- `backend/src/main/java/com/enerlytics/common/api/PageResponse.java`
-- `backend/src/main/java/com/enerlytics/common/api/PageableFactory.java`
-- `backend/src/main/java/com/enerlytics/security/tenant/TenantGuard.java`
-- `contracts/openapi/facilities.yaml`
 - `backend/src/main/java/com/enerlytics/identity/**`
+- `contracts/openapi/facilities.yaml`
 - `contracts/openapi/identity.yaml`
 - `docs/SECURITY.md`
 
@@ -120,8 +126,6 @@ ingestion, energy, carbon, tariff, or analytics features have been implemented.
 - `docs/PRODUCT_REQUIREMENTS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/DATA_MODEL.md`
-- `docs/EVENT_ARCHITECTURE.md`
-- `docs/CALCULATION_SPEC.md`
 - `docs/ADR/README.md`
 - `docs/ADR/0001-modular-monolith.md`
 - `docs/ADR/0002-deployment-topology-and-service-boundaries.md`
@@ -138,7 +142,7 @@ ingestion, energy, carbon, tariff, or analytics features have been implemented.
 |-----------|---------|
 | Java | 21 |
 | Spring Boot | 3.5.16 |
-| Maven | 3.9.16 (via wrapper) |
+| Maven | 3.9.16 |
 | Angular | 22.1.7 |
 | jjwt | 0.12.6 |
 | springdoc-openapi | 2.8.5 |
@@ -168,6 +172,22 @@ Results:
 - **Total: 34 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
 
+### Telemetry Simulator
+
+```text
+mvn --file backend/telemetry-simulator/pom.xml clean test
+mvn --file backend/telemetry-simulator/pom.xml clean package -DskipTests
+```
+
+Results:
+
+- `LoadProfileCalculatorTest`: 5/5 passed
+- `TelemetryGeneratorTest`: 4/4 passed
+- `SimulatorEngineTest`: 3/3 passed
+- `TelemetryEventProducerTest`: 1/1 passed
+- **Total: 13 tests passed, 0 failures**
+- Package build produced the simulator executable JAR.
+
 ### Frontend
 
 No frontend changes were required for this phase. The previous Angular build
@@ -180,22 +200,28 @@ remains valid.
 
 ## Unresolved Issues
 
+### Telemetry Simulator
+
+- The simulator reads directly from PostgreSQL; in a multi-service deployment it
+  should consume a published meter registry event or API rather than sharing the
+  database.
+- No automated `OFFLINE` transition based on missed simulated heartbeats.
+- Physical device credential provisioning is not implemented.
+- Multi-channel meters are not yet modeled.
+- Simulation profiles are fixed constants; user-defined curves and holiday
+  calendars are future work.
+
 ### Meter Domain
 
-- No meter channel abstraction yet; all readings will be associated with a single
-  meter entity until multi-channel meters are modeled.
-- No physical device provisioning flow or per-device credentials.
+- No meter channel abstraction yet; all readings are associated with a single meter
+  entity until multi-channel meters are modeled.
 - Metadata is stored as a JSON string; typed JSONB with a schema registry should
   be introduced when telemetry attributes become more complex.
-- No automated transition from `OFFLINE` to `ACTIVE` based on heartbeat age.
 
 ### Facility Domain
 
 - No address normalization, geocoding, or country-specific validation.
 - Effective dating and versioning of sites/buildings/zones are not implemented.
-- Parent hierarchy validation does not enforce building belongs to site across
-  the entire update surface (service-level checks exist; no DB exclusion
-  constraint for future moves).
 - Soft-delete archive behavior does not cascade to children.
 
 ### Pagination and Sorting
@@ -229,14 +255,18 @@ remains valid.
   rule failures.
 - `GlobalExceptionHandler` uses a generated UUID per error; framework-level
   correlation propagation should replace it once tracing is configured.
+- The simulator module is built independently; consider a root aggregator POM
+  or CI matrix so both backend and simulator are validated together.
 
 ## Next Recommended Task
 
-1. Set up CI to run the full backend test suite against PostgreSQL.
-2. Implement telemetry ingestion endpoints and Kafka outbox/event publishing for
-   `MeterReadingReceived` events, keeping tenant and idempotency guarantees.
+1. Implement the telemetry ingestion consumer that reads `MeterReadingReceived`,
+   validates samples, writes readings/rejections, and emits validated events via
+   the transactional outbox.
+2. Implement hourly energy aggregation and carbon calculation workers.
 3. Extract a shared test fixture helper for users, organizations, roles, and
    tokens.
-4. Add audit logging for meter lifecycle mutations (create, update, commission,
-   decommission) before production use.
-5. Introduce meter channels and physical-device credential provisioning.
+4. Add CI pipelines that build and test both `backend` and
+   `backend/telemetry-simulator`.
+5. Add Docker Compose service and README instructions for running the simulator
+   locally against the development database and Kafka.

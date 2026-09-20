@@ -1,6 +1,6 @@
 # Enerlytics Event-Driven Telemetry Architecture
 
-- Status: Approved design baseline; no topics or code implemented
+- Status: Approved design baseline; telemetry simulator implemented as a separate runnable producer. Ingestion consumers, validators, and downstream processors remain design-only.
 - Version: 1.0
 - Date: 2026-09-20
 - Governing decisions: `ADR-0002`, `ADR-0003`, `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`
@@ -711,7 +711,54 @@ Page/actionable alerts:
 
 Grafana views cover ingestion overview, per-stage latency/lag, data quality, outbox/inbox, retry/DLT, partition distribution, and end-to-end sample-to-alert flow.
 
-## 18. Security and Governance
+## 18. Development Telemetry Simulator
+
+A standalone Spring Boot component, `telemetry-simulator`, produces `MeterReadingReceived` events for every database meter marked `simulated = TRUE` and `status = ACTIVE`. It is intentionally separate from the production API service.
+
+### Simulator responsibilities
+
+- Read the active simulated meter registry from the same PostgreSQL database used by the backend.
+- Apply a `SimulationProfile` (OFFICE, DATA_CENTER, WAREHOUSE, RETAIL, MANUFACTURING, RESIDENTIAL) with profile-specific load curves.
+- Generate physically plausible readings that reflect business hours, nighttime base load, weekday/weekend differences, meter-specific base usage, peak periods, bounded random variation, and occasional controlled anomalies.
+- Publish events to `enerlytics.telemetry.meter-reading-received.v1` using the `organizationId:meterId` partition key.
+- Support deterministic seeding for reproducible test datasets, configurable simulation acceleration for historical backfills, and Micrometer metrics for produced/failed events and active meters.
+
+### Event fields produced by the simulator
+
+| Field | Source |
+|---|---|
+| `eventId` | Deterministic UUID derived from meter id, timestamp, and sequence |
+| `schemaVersion` | `1.0` |
+| `meterId` | Database meter id |
+| `organizationId` | Tenant organization id |
+| `siteId` | Site id |
+| `timestamp` | Virtual event time |
+| `energyKwh` | Derived from simulated power and interval |
+| `powerKw` | Load-profile value with variation |
+| `voltage` | Nominal three-phase voltage with anomaly dips |
+| `current` | Derived from power, voltage, and power factor |
+| `powerFactor` | Typical three-phase power factor |
+| `frequency` | Grid frequency |
+| `qualityStatus` | `OK` or anomaly label |
+
+### Configuration
+
+All behavior is driven by environment variables (see `application.yml`):
+
+- `SIMULATOR_ENABLED`
+- `SIMULATOR_TICK_INTERVAL`
+- `SIMULATOR_ACCELERATION`
+- `SIMULATOR_SEED`
+- `SIMULATOR_ANOMALY_PROBABILITY`
+- `SIMULATOR_METER_REFRESH_INTERVAL`
+- `KAFKA_BOOTSTRAP_SERVERS`
+- `SIMULATOR_KAFKA_TOPIC`
+
+### Relationship to the event pipeline
+
+The simulator is a Kafka producer only. It does not write meter readings directly to PostgreSQL and does not consume events. In production, physical gateways will replace the simulator as the source of `MeterReadingReceived` events, while the rest of the pipeline (validator, aggregator, carbon, anomaly, alert) remains unchanged.
+
+## 19. Security and Governance
 
 - Kafka uses TLS and authenticated service identities; ACLs grant only required produce/consume/topic-admin capabilities.
 - Ingestion producers can publish only received telemetry; they cannot publish validated/aggregate/alert facts.

@@ -1,0 +1,5 @@
+com\enerlytics\simulator\application\TelemetryGeneratorTest.class
+com\enerlytics\simulator\infrastructure\TelemetryEventProducerTest.class
+com\enerlytics\simulator\application\SimulatorEngineTest$MutableTimeSource.class
+com\enerlytics\simulator\application\SimulatorEngineTest.class
+com\enerlytics\simulator\application\LoadProfileCalculatorTest.class

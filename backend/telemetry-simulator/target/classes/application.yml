@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: telemetry-simulator
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/enerlytics}
+    username: ${DATABASE_USERNAME:enerlytics}
+    password: ${DATABASE_PASSWORD:enerlytics}
+    driver-class-name: ${DATABASE_DRIVER:org.postgresql.Driver}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+enerlytics:
+  simulator:
+    enabled: ${SIMULATOR_ENABLED:true}
+    tick-interval: ${SIMULATOR_TICK_INTERVAL:PT1S}
+    acceleration: ${SIMULATOR_ACCELERATION:1.0}
+    seed: ${SIMULATOR_SEED:}
+    anomaly-probability: ${SIMULATOR_ANOMALY_PROBABILITY:0.005}
+    meter-refresh-interval: ${SIMULATOR_METER_REFRESH_INTERVAL:PT1M}
+    kafka:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+      topic: ${SIMULATOR_KAFKA_TOPIC:enerlytics.telemetry.meter-reading-received.v1}
+      client-id: ${SIMULATOR_KAFKA_CLIENT_ID:telemetry-simulator}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    com.enerlytics.simulator: INFO

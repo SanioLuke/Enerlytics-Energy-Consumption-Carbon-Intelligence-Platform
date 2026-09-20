@@ -80,7 +80,17 @@ standard and do not depend on temporary helper paths.
    ./mvnw clean test package            # Linux/macOS
    ```
 
-6. **Build and test the frontend:**
+6. **Build and test the telemetry simulator:**
+
+   ```bash
+   cd backend/telemetry-simulator
+   mvn clean test package                 # Requires Maven 3.9+
+   ```
+
+   The simulator is a separate Spring Boot application that produces
+   `MeterReadingReceived` Kafka events for active simulated meters.
+
+7. **Build and test the frontend:**
 
    ```bash
    cd frontend
@@ -152,6 +162,29 @@ X-Organization-Id: <organization-uuid>
 OpenAPI/Swagger UI is available at `http://localhost:8080/swagger-ui.html` once
 the backend is running.
 
+## Telemetry simulator
+
+A separate Spring Boot module in `backend/telemetry-simulator` produces realistic
+Kafka `MeterReadingReceived` events for meters flagged as simulated and active.
+
+Run it after starting the local database and Kafka:
+
+```bash
+cd backend/telemetry-simulator
+mvn spring-boot:run -Dspring-boot.run.jvmArguments="-DDATABASE_URL=jdbc:postgresql://localhost:5432/enerlytics -DDATABASE_USERNAME=enerlytics -DDATABASE_PASSWORD=enerlytics -DKAFKA_BOOTSTRAP_SERVERS=localhost:9092"
+```
+
+Useful environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `SIMULATOR_ENABLED` | `true` | Start/stop the simulator |
+| `SIMULATOR_TICK_INTERVAL` | `PT1S` | Real-time scheduler tick |
+| `SIMULATOR_ACCELERATION` | `1.0` | Multiplier for virtual time (use high values for historical backfills) |
+| `SIMULATOR_SEED` | none | Optional deterministic seed for reproducible output |
+| `SIMULATOR_ANOMALY_PROBABILITY` | `0.005` | Chance of an anomalous reading |
+| `SIMULATOR_KAFKA_TOPIC` | `enerlytics.telemetry.meter-reading-received.v1` | Destination topic |
+
 ## Configuration
 
 All runtime and build configuration is driven by environment variables. The
@@ -168,35 +201,27 @@ Never commit secrets, API keys, or production credentials.
 
 ## Bootstrap scope
 
-The repository bootstrap, identity, and organization/facility domains are complete.
-The following are intentionally absent and will be added in later phases:
-
-- Kafka producers/consumers and telemetry processing logic
-- Energy, cost, carbon, tariff, forecast, alert, and analytics features
-- Angular dashboards, reports, and user workflows
-- Telemetry ingestion and meter-reading endpoints
-
 What is currently present:
 
-- A compilable Spring Boot 3.x application with Actuator, Web, Validation,
+- A compilable Spring Boot 3.x backend application with Actuator, Web, Validation,
   Security, JPA, Redis, Kafka, Batch, Flyway, PostgreSQL, jjwt, and OpenAPI.
 - JWT-based authentication, refresh-token rotation, logout, and RBAC.
 - Organization-level tenant isolation with `X-Organization-Id`.
-- Flyway-managed identity and organization schema with seeded system roles and
-  permissions.
+- Flyway-managed identity, organization, facility, meter, and simulation schema.
+- Meter registration, lifecycle, location assignment, search, and heartbeat APIs.
+- A standalone Spring Boot telemetry simulator that publishes realistic
+  `MeterReadingReceived` Kafka events for active simulated meters.
 - A compilable Angular 22 application with strict TypeScript, SCSS, and
   Angular Material.
 - Dockerfiles for backend and frontend.
 - A Docker Compose definition for PostgreSQL 18.6, Apache Kafka 4.3.1, and
   Redis 8.10.1, each with a health check.
 
-- A compilable Spring Boot 3.x application with Actuator, Web, Validation,
-  Security, JPA, Redis, Kafka, Batch, Flyway, and PostgreSQL dependencies.
-- A compilable Angular 22 application with strict TypeScript, SCSS, and
-  Angular Material.
-- Dockerfiles for backend and frontend.
-- A Docker Compose definition for PostgreSQL 18.6, Apache Kafka 4.3.1, and
-  Redis 8.10.1, each with a health check.
+The following are intentionally absent and will be added in later phases:
+
+- Telemetry ingestion consumers, validation, persistence, and transactional outbox.
+- Energy aggregation, cost, carbon, tariff, forecast, alert, and analytics features.
+- Angular dashboards, reports, and user workflows beyond the initial shell.
 
 ## Technology versions
 
