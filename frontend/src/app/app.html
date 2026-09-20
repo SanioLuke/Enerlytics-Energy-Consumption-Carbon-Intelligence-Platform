@@ -1,0 +1,15 @@
+<mat-toolbar color="primary">
+  <span>{{ title() }}</span>
+</mat-toolbar>
+
+<main class="main">
+  <mat-card appearance="outlined">
+    <mat-card-title>Technical bootstrap complete</mat-card-title>
+    <mat-card-content>
+      <p>This shell does not contain any business features.</p>
+      <p>API base URL: {{ apiBaseUrl() }}</p>
+    </mat-card-content>
+  </mat-card>
+</main>
+
+<router-outlet />
