@@ -2,10 +2,11 @@
 
 A production-grade Energy Consumption & Carbon Intelligence Platform.
 
-This repository is currently in the **bootstrap phase**. It contains the technical
-foundation for the Angular frontend, Java/Spring Boot backend, and local
-infrastructure services (PostgreSQL, Kafka, Redis). No business features have
-been implemented yet.
+This repository currently contains the technical foundation plus the **identity
+and access-control** backend module. It supports JWT authentication, RBAC, and
+organization-level tenant isolation. The only exposed business endpoints are
+authentication and a read-only organization endpoint; energy-domain features
+remain to be implemented.
 
 ## Repository structure
 
@@ -101,6 +102,28 @@ standard and do not depend on temporary helper paths.
    ./scripts/stop-local.sh
    ```
 
+## API endpoints
+
+The backend exposes the following identity endpoints under `/api/v1`:
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/auth/login` | Authenticate with email/password; receive access/refresh tokens. |
+| `POST` | `/auth/refresh` | Rotate refresh token into a new token pair. |
+| `POST` | `/auth/logout` | Revoke the supplied refresh token. |
+| `GET`  | `/auth/me` | Get the current user's profile and memberships. |
+| `GET`  | `/organizations/{id}` | Read an organization (requires `organization:read`). |
+
+All authenticated requests must include:
+
+```text
+Authorization: Bearer <access-token>
+X-Organization-Id: <organization-uuid>
+```
+
+OpenAPI/Swagger UI is available at `http://localhost:8080/swagger-ui.html` once
+the backend is running.
+
 ## Configuration
 
 All runtime and build configuration is driven by environment variables. The
@@ -117,16 +140,27 @@ Never commit secrets, API keys, or production credentials.
 
 ## Bootstrap scope
 
-This phase intentionally does **not** implement business functionality. The
-following are intentionally absent and will be added in later phases:
+The repository bootstrap and identity foundation are complete. The following are
+intentionally absent and will be added in later phases:
 
-- Domain entities, JPA repositories, and business REST endpoints
 - Kafka producers/consumers and telemetry processing logic
 - Energy, cost, carbon, tariff, forecast, alert, and analytics features
 - Angular dashboards, reports, and user workflows
-- Flyway database migrations (Flyway is on the classpath but disabled by default)
+- Site, building, meter, and facility management endpoints
 
-Only the following technical scaffolding is present:
+What is currently present:
+
+- A compilable Spring Boot 3.x application with Actuator, Web, Validation,
+  Security, JPA, Redis, Kafka, Batch, Flyway, PostgreSQL, jjwt, and OpenAPI.
+- JWT-based authentication, refresh-token rotation, logout, and RBAC.
+- Organization-level tenant isolation with `X-Organization-Id`.
+- Flyway-managed identity and organization schema with seeded system roles and
+  permissions.
+- A compilable Angular 22 application with strict TypeScript, SCSS, and
+  Angular Material.
+- Dockerfiles for backend and frontend.
+- A Docker Compose definition for PostgreSQL 18.6, Apache Kafka 4.3.1, and
+  Redis 8.10.1, each with a health check.
 
 - A compilable Spring Boot 3.x application with Actuator, Web, Validation,
   Security, JPA, Redis, Kafka, Batch, Flyway, and PostgreSQL dependencies.
