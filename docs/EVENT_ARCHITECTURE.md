@@ -1,6 +1,6 @@
 # Enerlytics Event-Driven Telemetry Architecture
 
-- Status: Approved design baseline; telemetry simulator implemented as a separate runnable producer. Ingestion consumers, validators, and downstream processors remain design-only.
+- Status: Approved design baseline; telemetry simulator implemented as a separate runnable producer. Telemetry ingestion consumer, validation service, and transactional outbox are implemented. Downstream aggregators, carbon, anomaly, and alert processors remain design-only.
 - Version: 1.0
 - Date: 2026-09-20
 - Governing decisions: `ADR-0002`, `ADR-0003`, `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`

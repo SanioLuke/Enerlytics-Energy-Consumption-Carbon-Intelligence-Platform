@@ -2,12 +2,13 @@
 
 ## Current Phase
 
-Phase 10 — Realistic smart-meter telemetry simulator implemented as a dedicated
-runnable Spring Boot component. The simulator is now decoupled from the
-backend database: it can read the active simulated-meter registry via an internal
-registry API authenticated with a shared service API key, falling back to a
-read-only JDBC source when registry mode is disabled. Ingestion consumers and
-downstream event processors remain future work.
+Phase 11 — Telemetry ingestion consumer and transactional outbox implemented.
+The backend now consumes `enerlytics.telemetry.meter-reading-received.v1`,
+validates each sample, persists authoritative readings and rejection records,
+and writes `MeterReadingValidated` / `MeterReadingRejected` events to a
+transactional outbox. An outbox relay publishes those events to Kafka after the
+local PostgreSQL transaction commits. The simulator registry decoupling from
+Phase 10 remains in place.
 
 A latent Spring Data property-resolution bug in `MeterRepository` derived-query
 methods was also fixed by switching meter-scoped queries to explicit nested-path
@@ -125,6 +126,32 @@ naming (`organization.id`, `site.id`, etc.).
 - `.env.example`
 - `.gitignore`
 
+### Phase 11
+
+- `backend/src/main/resources/db/migration/V1_4_0__telemetry_ingestion_schema.sql`
+- `backend/src/main/java/com/enerlytics/telemetry/api/event/MeterReadingReceivedEvent.java`
+- `backend/src/main/java/com/enerlytics/telemetry/api/event/MeterReadingValidatedEvent.java`
+- `backend/src/main/java/com/enerlytics/telemetry/api/event/MeterReadingRejectedEvent.java`
+- `backend/src/main/java/com/enerlytics/telemetry/api/kafka/TelemetryIngestionConsumer.java`
+- `backend/src/main/java/com/enerlytics/telemetry/application/TelemetryValidator.java`
+- `backend/src/main/java/com/enerlytics/telemetry/application/TelemetryValidationResult.java`
+- `backend/src/main/java/com/enerlytics/telemetry/application/TelemetryIngestionService.java`
+- `backend/src/main/java/com/enerlytics/telemetry/application/OutboxRelay.java`
+- `backend/src/main/java/com/enerlytics/telemetry/domain/MeterReadingEntity.java`
+- `backend/src/main/java/com/enerlytics/telemetry/domain/MeterReadingRejectedEntity.java`
+- `backend/src/main/java/com/enerlytics/telemetry/domain/OutboxEntity.java`
+- `backend/src/main/java/com/enerlytics/telemetry/infrastructure/persistence/MeterReadingRepository.java`
+- `backend/src/main/java/com/enerlytics/telemetry/infrastructure/persistence/MeterReadingRejectedRepository.java`
+- `backend/src/main/java/com/enerlytics/telemetry/infrastructure/persistence/OutboxRepository.java`
+- `backend/src/main/java/com/enerlytics/config/TimeConfig.java`
+- `backend/src/main/java/com/enerlytics/EnerlyticsBackendApplication.java`
+- `backend/src/main/resources/application.yml`
+- `backend/src/test/java/com/enerlytics/telemetry/application/TelemetryValidatorTest.java`
+- `backend/src/test/java/com/enerlytics/telemetry/application/TelemetryIngestionServiceTest.java`
+- `docs/EVENT_ARCHITECTURE.md`
+- `docs/PROJECT_STATE.md`
+- `.env.example`
+
 ### Previous Phases
 
 - `backend/src/main/resources/db/migration/V1_2_0__meter_schema.sql`
@@ -186,7 +213,9 @@ Results:
 - `MeterRepositoryTest`: 3/3 passed
 - `MeterServiceTest`: 3/3 passed
 - `MeterApiIntegrationTest`: 4/4 passed
-- **Total: 34 tests passed, 0 failures**
+- `TelemetryValidatorTest`: 7/7 passed
+- `TelemetryIngestionServiceTest`: 3/3 passed
+- **Total: 44 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
 
 ### Telemetry Simulator
@@ -227,6 +256,17 @@ remains valid.
 - Multi-channel meters are not yet modeled.
 - Simulation profiles are fixed constants; user-defined curves and holiday
   calendars are future work.
+
+### Telemetry Ingestion
+
+- Kafka listener and outbox relay are disabled in the `test` profile. Full
+  `EmbeddedKafka` integration tests covering redelivery, duplicate source event IDs,
+  tenant mismatch, invalid payloads, and outbox publish failure are not yet added.
+- The outbox relay marks records published synchronously; retry metadata such as
+  `attempt_count` and `last_error_at` is not yet captured.
+- Energy/power consistency checks against the meter's configured interval and
+  physical bounds are basic; site-specific thresholds and calibrated ranges are
+  future work.
 
 ### Meter Domain
 

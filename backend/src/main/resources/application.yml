@@ -34,11 +34,17 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+      enable-idempotence: true
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP_ID:enerlytics-backend}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+    listener:
+      ack-mode: manual_immediate
 
   data:
     redis:
@@ -59,6 +65,18 @@ management:
       show-details: never
 
 enerlytics:
+  kafka:
+    topics:
+      meter-reading-received: ${SIMULATOR_KAFKA_TOPIC:enerlytics.telemetry.meter-reading-received.v1}
+      meter-reading-validated: ${METER_READING_VALIDATED_TOPIC:enerlytics.telemetry.meter-reading-validated.v1}
+      meter-reading-rejected: ${METER_READING_REJECTED_TOPIC:enerlytics.telemetry.meter-reading-rejected.v1}
+    consumer:
+      groups:
+        ingestion: ${KAFKA_INGESTION_GROUP_ID:enerlytics-telemetry-ingestion}
+  outbox:
+    relay:
+      interval: ${OUTBOX_RELAY_INTERVAL:PT1S}
+      page-size: ${OUTBOX_RELAY_PAGE_SIZE:100}
   security:
     jwt:
       access-secret: ${JWT_ACCESS_SECRET:change-me-in-production-access-secret-key-min-256-bits}
