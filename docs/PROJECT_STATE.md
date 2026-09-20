@@ -2,17 +2,21 @@
 
 ## Current Phase
 
-Phase 11 — Telemetry ingestion consumer and transactional outbox implemented.
-The backend now consumes `enerlytics.telemetry.meter-reading-received.v1`,
-validates each sample, persists authoritative readings and rejection records,
-and writes `MeterReadingValidated` / `MeterReadingRejected` events to a
-transactional outbox. An outbox relay publishes those events to Kafka after the
-local PostgreSQL transaction commits. The simulator registry decoupling from
-Phase 10 remains in place.
+Phase 12A — Kafka end-to-end integration testing completed. The ingestion
+pipeline is now exercised against a real embedded Kafka broker rather than only
+unit mocks. Fifteen integration tests cover valid ingestion, malformed JSON,
+schema/validation rejections, idempotency, database-failure redelivery,
+consumer-offset behavior, and outbox publish retry.
 
-A latent Spring Data property-resolution bug in `MeterRepository` derived-query
-methods was also fixed by switching meter-scoped queries to explicit nested-path
-naming (`organization.id`, `site.id`, etc.).
+Because `spring-kafka-test` does not yet support the Kafka 4.3.x broker wire
+version used by the local Docker image, the Maven `kafka.version` override was
+removed so Spring Boot manages a compatible Kafka client/test-broker line
+(currently `3.9.2`). The production Docker Compose image remains
+`apache/kafka:4.3.1`; the client library is wire-compatible.
+
+A `KafkaConfig` bean now provides an explicit `KafkaTemplate<String, String>`
+because Spring Boot's auto-configured `KafkaTemplate<?, ?>` could not satisfy
+the `KafkaTemplate<String, String>` injection required by `OutboxRelay`.
 
 ## Completed Work
 
@@ -152,6 +156,15 @@ naming (`organization.id`, `site.id`, etc.).
 - `docs/PROJECT_STATE.md`
 - `.env.example`
 
+### Phase 12A
+
+- `backend/src/test/java/com/enerlytics/telemetry/api/kafka/TelemetryIngestionKafkaIntegrationTest.java`
+- `backend/src/test/resources/application-integration.yml`
+- `backend/src/main/java/com/enerlytics/config/KafkaConfig.java`
+- `backend/pom.xml` (added `spring-kafka-test`, `awaitility`, `metrics-core`; removed `kafka.version` override)
+- `docs/EVENT_ARCHITECTURE.md`
+- `docs/PROJECT_STATE.md`
+
 ### Previous Phases
 
 - `backend/src/main/resources/db/migration/V1_2_0__meter_schema.sql`
@@ -215,7 +228,8 @@ Results:
 - `MeterApiIntegrationTest`: 4/4 passed
 - `TelemetryValidatorTest`: 7/7 passed
 - `TelemetryIngestionServiceTest`: 3/3 passed
-- **Total: 44 tests passed, 0 failures**
+- `TelemetryIngestionKafkaIntegrationTest`: 15/15 passed
+- **Total: 59 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
 
 ### Telemetry Simulator
@@ -259,14 +273,13 @@ remains valid.
 
 ### Telemetry Ingestion
 
-- Kafka listener and outbox relay are disabled in the `test` profile. Full
-  `EmbeddedKafka` integration tests covering redelivery, duplicate source event IDs,
-  tenant mismatch, invalid payloads, and outbox publish failure are not yet added.
 - The outbox relay marks records published synchronously; retry metadata such as
   `attempt_count` and `last_error_at` is not yet captured.
 - Energy/power consistency checks against the meter's configured interval and
   physical bounds are basic; site-specific thresholds and calibrated ranges are
   future work.
+- A dedicated DLQ topic is not yet wired; invalid samples are persisted to
+  `meter_reading_rejected` and emitted as `MeterReadingRejected` events instead.
 
 ### Meter Domain
 
