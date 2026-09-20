@@ -10,7 +10,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -22,6 +25,7 @@ import java.util.UUID;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private static final String PROBLEM_BASE = "https://docs.enerlytics.example/problems/";
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -35,6 +39,14 @@ public class GlobalExceptionHandler {
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(buildProblem("validation-error", "Request validation failed",
                         HttpStatus.BAD_REQUEST, "One or more fields are invalid.", request, errors));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Problem> handleNotReadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(buildProblem("malformed-request", "Malformed request body",
+                        HttpStatus.BAD_REQUEST, "Request body is missing or cannot be parsed.", request, null));
     }
 
     @ExceptionHandler({BadCredentialsException.class, DisabledException.class, AuthenticationException.class,
@@ -72,6 +84,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Problem> handleGeneric(Exception ex, HttpServletRequest request) {
+        log.error("Unhandled exception for {} {}", request.getMethod(), request.getRequestURI(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(buildProblem("internal-error", "Internal server error",
