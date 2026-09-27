@@ -1,6 +1,6 @@
 # Enerlytics Event-Driven Telemetry Architecture
 
-- Status: Approved design baseline; telemetry simulator implemented as a separate runnable producer. Telemetry ingestion consumer, validation service, transactional outbox, and end-to-end Kafka integration tests are implemented. Downstream aggregators, carbon, anomaly, and alert processors remain design-only.
+- Status: Approved design baseline; telemetry simulator, telemetry ingestion, transactional outbox, Kafka integration tests, and energy aggregation with reconciliation are implemented. Carbon, anomaly, and alert processors remain design-only.
 - Version: 1.0
 - Date: 2026-09-20
 - Governing decisions: `ADR-0002`, `ADR-0003`, `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`
@@ -71,6 +71,14 @@ flowchart LR
 ```
 
 Kafka is the transport between stages. The database/outbox arrows emphasize that events describing authoritative database changes originate only after the change and event record commit atomically.
+
+### 2.1 Implemented energy aggregation flow
+
+`EnergyAggregationConsumer` reads `MeterReadingValidated` with the existing manual-acknowledgment container. It recomputes the reading's affected quarter-hour, hour, day, and month buckets from authoritative `meter_reading` rows for the meter and available zone/building/site/organization ancestors. It acknowledges only after the aggregate transaction commits. Malformed validated payloads are treated as poison messages and acknowledged; infrastructure/database failures are rethrown for Kafka redelivery.
+
+A scheduled reconciliation pass queries only readings ingested inside a configurable lookback window, groups them by meter and affected event-time range, and repeats the same deterministic bucket rebuild. This repairs late arrivals and interrupted event processing without an unbounded table scan. Dashboard APIs query `analytics.energy_aggregate`, not raw telemetry. The schema, formulas, indexes, API, and benchmark are documented in `docs/ENERGY_AGGREGATION.md`.
+
+The implementation does not yet publish `EnergyAggregationUpdated`; adding its transactional outbox record is intentionally paired with the carbon-processing phase so its initial contract matches the downstream consumer requirements.
 
 ## 3. Event Naming and Topic Conventions
 

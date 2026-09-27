@@ -2,21 +2,19 @@
 
 ## Current Phase
 
-Phase 12A — Kafka end-to-end integration testing completed. The ingestion
-pipeline is now exercised against a real embedded Kafka broker rather than only
-unit mocks. Fifteen integration tests cover valid ingestion, malformed JSON,
-schema/validation rejections, idempotency, database-failure redelivery,
-consumer-offset behavior, and outbox publish retry.
+Phase 12B — Energy aggregation completed. Accepted telemetry now produces
+persistent, tenant-scoped rollups for quarter-hour, hour, day, and month buckets
+across meter, zone, building, site, and organization dimensions. Incremental
+Kafka processing recomputes bounded buckets from authoritative readings, while
+a scheduled reconciliation pass repairs buckets affected by late data, replay,
+or processing outages.
 
-Because `spring-kafka-test` does not yet support the Kafka 4.3.x broker wire
-version used by the local Docker image, the Maven `kafka.version` override was
-removed so Spring Boot manages a compatible Kafka client/test-broker line
-(currently `3.9.2`). The production Docker Compose image remains
-`apache/kafka:4.3.1`; the client library is wire-compatible.
-
-A `KafkaConfig` bean now provides an explicit `KafkaTemplate<String, String>`
-because Spring Boot's auto-configured `KafkaTemplate<?, ?>` could not satisfy
-the `KafkaTemplate<String, String>` injection required by `OutboxRelay`.
+Dashboard APIs read only `analytics.energy_aggregate`; they do not aggregate the
+raw `meter_reading` table at request time. Numeric correctness, hierarchy
+rollups, bucket boundaries, idempotency, late-event repair, reconciliation,
+tenant isolation, API validation, and consumer acknowledgment behavior are
+automatically tested. A repeatable 134,400-reading benchmark documents the
+write/rebuild and precomputed-read performance in `docs/ENERGY_AGGREGATION.md`.
 
 ## Completed Work
 
@@ -165,6 +163,24 @@ the `KafkaTemplate<String, String>` injection required by `OutboxRelay`.
 - `docs/EVENT_ARCHITECTURE.md`
 - `docs/PROJECT_STATE.md`
 
+### Phase 12B
+
+- `backend/src/main/resources/db/migration/V1_5_0__energy_aggregation_schema.sql`
+- `backend/src/main/java/com/enerlytics/analytics/domain/**`
+- `backend/src/main/java/com/enerlytics/analytics/application/**`
+- `backend/src/main/java/com/enerlytics/analytics/infrastructure/persistence/**`
+- `backend/src/main/java/com/enerlytics/analytics/api/**`
+- `backend/src/test/java/com/enerlytics/analytics/EnergyAggregationServiceTest.java`
+- `backend/src/test/java/com/enerlytics/analytics/EnergyAggregationConsumerTest.java`
+- `backend/src/test/java/com/enerlytics/analytics/EnergyAnalyticsApiIntegrationTest.java`
+- `backend/src/test/java/com/enerlytics/analytics/EnergyAggregationBenchmarkTest.java`
+- `backend/src/main/resources/application.yml`
+- `backend/src/test/resources/application-integration.yml`
+- `.env.example`
+- `docs/ENERGY_AGGREGATION.md`
+- `docs/EVENT_ARCHITECTURE.md`
+- `docs/PROJECT_STATE.md`
+
 ### Previous Phases
 
 - `backend/src/main/resources/db/migration/V1_2_0__meter_schema.sql`
@@ -229,8 +245,16 @@ Results:
 - `TelemetryValidatorTest`: 7/7 passed
 - `TelemetryIngestionServiceTest`: 3/3 passed
 - `TelemetryIngestionKafkaIntegrationTest`: 15/15 passed
-- **Total: 59 tests passed, 0 failures**
+- `EnergyAggregationServiceTest`: 7/7 passed
+- `EnergyAggregationConsumerTest`: 3/3 passed
+- `EnergyAnalyticsApiIntegrationTest`: 4/4 passed
+- `EnergyAggregationBenchmarkTest`: 1/1 passed
+- **Total: 74 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
+
+Energy benchmark dataset and observed development-host timings are documented in
+`docs/ENERGY_AGGREGATION.md`. The benchmark covers 100 meters, 14 days, 134,400
+raw readings, bounded reconciliation queries, and a 336-bucket analytics read.
 
 ### Telemetry Simulator
 
@@ -280,6 +304,14 @@ remains valid.
   future work.
 - A dedicated DLQ topic is not yet wired; invalid samples are persisted to
   `meter_reading_rejected` and emitted as `MeterReadingRejected` events instead.
+
+### Energy Aggregation
+
+- Day and month buckets currently use UTC boundaries; site-local reporting periods are a future enhancement.
+- Reconciliation resolves the meter's current facility hierarchy because effective-dated meter-location history is not yet modeled.
+- Recompute-based incremental processing prioritizes correctness and replay safety but can rebuild up to 20 bounded buckets for one reading.
+- `EnergyAggregationUpdated` outbox events are not emitted yet; they will be added with downstream carbon processing.
+- The documented benchmark uses H2 in PostgreSQL compatibility mode. Production PostgreSQL query plans and p95/p99 targets remain a production-hardening task.
 
 ### Meter Domain
 
@@ -332,13 +364,8 @@ remains valid.
 
 ## Next Recommended Task
 
-1. Implement the telemetry ingestion consumer that reads `MeterReadingReceived`,
-   validates samples, writes readings/rejections, and emits validated events via
-   the transactional outbox.
-2. Implement hourly energy aggregation and carbon calculation workers.
-3. Extract a shared test fixture helper for users, organizations, roles, and
-   tokens.
-4. Add CI pipelines that build and test both `backend` and
-   `backend/telemetry-simulator`.
-5. Add Docker Compose service and README instructions for running the simulator
-   locally against the development database and Kafka.
+1. Implement carbon-intensity provider abstraction and persist provider observations.
+2. Calculate location-based carbon emissions from versioned energy aggregates.
+3. Add real-time energy/carbon analytics delivery to the frontend.
+4. Extract a shared test fixture helper for users, organizations, roles, and tokens.
+5. Add CI pipelines that build and test both `backend` and `backend/telemetry-simulator`.

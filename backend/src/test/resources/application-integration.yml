@@ -42,6 +42,12 @@ enerlytics:
     consumer:
       groups:
         ingestion: enerlytics-telemetry-ingestion
+        aggregation: enerlytics-energy-aggregation
+  aggregation:
+    consumer-enabled: false
+    reconcile-interval: PT30S
+    reconcile-initial-delay: PT5S
+    reconcile-lookback: PT24H
   outbox:
     relay:
       interval: PT0.2S

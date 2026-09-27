@@ -73,6 +73,12 @@ enerlytics:
     consumer:
       groups:
         ingestion: ${KAFKA_INGESTION_GROUP_ID:enerlytics-telemetry-ingestion}
+        aggregation: ${KAFKA_AGGREGATION_GROUP_ID:enerlytics-energy-aggregation}
+  aggregation:
+    consumer-enabled: ${AGGREGATION_CONSUMER_ENABLED:true}
+    reconcile-interval: ${AGGREGATION_RECONCILE_INTERVAL:PT5M}
+    reconcile-initial-delay: ${AGGREGATION_RECONCILE_INITIAL_DELAY:PT1M}
+    reconcile-lookback: ${AGGREGATION_RECONCILE_LOOKBACK:PT24H}
   outbox:
     relay:
       interval: ${OUTBOX_RELAY_INTERVAL:PT1S}
