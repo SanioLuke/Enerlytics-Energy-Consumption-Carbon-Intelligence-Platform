@@ -2,7 +2,33 @@
 
 ## Current Phase
 
-Phase 12D — Carbon emissions processing completed. Enerlytics now computes
+Phase 13 — Configurable electricity tariff engine completed. Enerlytics can now
+price energy consumption with `FLAT_RATE` and `TIME_OF_USE` tariffs assigned per
+site. Tariffs carry currency, IANA timezone, and an effective date range;
+overlapping effective ranges per site are rejected. Rate windows specify day
+type (ALL/WEEKDAY/WEEKEND evaluated on the local date), start/end local times —
+including midnight-wrapping windows such as 22:00-06:00 — cost per kWh, an
+optional demand rate per kW, and a priority for overlapping windows.
+
+`CostCalculationService` prices each meter-level hourly aggregate using the
+tariff effective on the hour's local date and the rate matching the local time
+and day type, then rolls results up to meter, building, site, and organization
+dimensions at HOUR/DAY/MONTH granularities. Demand charge per bucket is the
+maximum hourly `peakPowerKw × demandRatePerKw`. Results persist in
+`billing.energy_cost` with exact decimal arithmetic (scale 9, `HALF_EVEN`),
+currency, energy cost, demand charge, total, coverage, quality status, missing
+rate hours, and calculation run id. Recalculation is idempotent via the bucket
+unique key; late readings and tariff corrections recompute deterministically
+under a new run id.
+
+Buckets with no applicable tariff or rate are marked `UNAVAILABLE` with null
+costs — missing pricing is never substituted with zero; partial coverage is
+`PARTIAL` with an energy-weighted coverage ratio. Buckets priced under multiple
+currencies are not summed; they are marked `UNAVAILABLE` with null currency.
+
+### Phase 12D — Carbon emissions processing (prior phase)
+
+Phase 12D completed carbon emissions processing. Enerlytics now computes
 location-based Scope 2 emissions per `CALCULATION_SPEC.md`: for each meter-level
 hourly energy aggregate, the energy consumed (kWh) is multiplied by the grid
 carbon intensity (gCO2eq/kWh, converted exactly to kgCO2eq/kWh) of the meter's
@@ -208,6 +234,19 @@ and `ESTIMATED` quality; realized carbon intensity is always energy-weighted
 - `docs/EXTERNAL_INTEGRATIONS.md`
 - `docs/PROJECT_STATE.md`
 
+### Phase 13
+
+- `backend/src/main/resources/db/migration/V1_8_0__billing_schema.sql`
+- `backend/src/main/java/com/enerlytics/billing/domain/**`
+- `backend/src/main/java/com/enerlytics/billing/infrastructure/persistence/**`
+- `backend/src/main/java/com/enerlytics/billing/application/TariffService.java`
+- `backend/src/main/java/com/enerlytics/billing/application/CostCalculationService.java`
+- `backend/src/main/java/com/enerlytics/billing/application/CostAnalyticsService.java`
+- `backend/src/main/java/com/enerlytics/billing/api/**`
+- `backend/src/test/java/com/enerlytics/billing/application/CostCalculationServiceTest.java`
+- `backend/src/test/java/com/enerlytics/billing/api/CostAnalyticsApiIntegrationTest.java`
+- `docs/PROJECT_STATE.md`
+
 ### Phase 12D
 
 - `backend/src/main/resources/db/migration/V1_7_0__carbon_emission_schema.sql`
@@ -297,7 +336,9 @@ Results:
 - `CarbonIntensityProviderSelectionTest`: 1/1 passed
 - `CarbonEmissionCalculationServiceTest`: 12/12 passed
 - `CarbonAnalyticsApiIntegrationTest`: 2/2 passed
-- **Total: 105 tests passed, 0 failures**
+- `CostCalculationServiceTest`: 14/14 passed
+- `CostAnalyticsApiIntegrationTest`: 1/1 passed
+- **Total: 120 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
 
 Energy benchmark dataset and observed development-host timings are documented in
@@ -384,6 +425,24 @@ remains valid.
 - `QUARTER_HOUR` granularity is intentionally unsupported for carbon; emissions
   are computed from hourly factors and aggregate to HOUR/DAY/MONTH.
 
+### Billing / Tariff Engine
+
+- Tariffs are assigned per site; organization-level cost buckets require a
+  single currency across contributing meters — mixed-currency buckets are
+  marked `UNAVAILABLE` with null costs rather than producing a meaningless sum.
+- Day-type classification uses the local calendar date of each hour (an
+  overnight rate crossing into Saturday is priced as weekend); holiday
+  calendars are future work.
+- Rate windows are evaluated at hourly resolution; sub-hour boundary splits
+  within a single hour bucket use that hour's start instant.
+- Demand charge is `max(hourly peakPowerKw × demandRatePerKw)` per bucket,
+  applied only from windows carrying a demand rate; true billing-period demand
+  ratchets are future work.
+- Cost buckets are computed on demand like carbon emissions; a scheduled or
+  event-driven materialization job is future work.
+- Currency conversion is not supported; baseline comparison rejects periods in
+  different currencies.
+
 ### Meter Domain
 
 - No meter channel abstraction yet; all readings are associated with a single meter
@@ -436,7 +495,7 @@ remains valid.
 ## Next Recommended Task
 
 1. Add real-time analytics APIs and alert processing (threshold/anomaly rules over aggregates and emissions).
-2. Wire incremental emission recalculation to `EnergyAggregationUpdated` events or a scheduled job.
+2. Wire incremental emission/cost recalculation to `EnergyAggregationUpdated` events or a scheduled job.
 3. Add real-time energy/carbon analytics delivery to the frontend.
 4. Extract a shared test fixture helper for users, organizations, roles, and tokens.
 5. Add CI pipelines that build and test both `backend` and `backend/telemetry-simulator`.
