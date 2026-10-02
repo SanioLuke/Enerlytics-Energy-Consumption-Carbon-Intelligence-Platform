@@ -64,6 +64,11 @@ management:
         enabled: true
       show-details: never
 
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=2000,expireAfterWrite=300s
+
 enerlytics:
   kafka:
     topics:
@@ -77,6 +82,48 @@ enerlytics:
   aggregation:
     consumer-enabled: ${AGGREGATION_CONSUMER_ENABLED:true}
     reconcile-interval: ${AGGREGATION_RECONCILE_INTERVAL:PT5M}
+  carbon-intensity:
+    cache-ttl: ${CARBON_INTENSITY_CACHE_TTL:PT5M}
+    electricity-maps:
+      api-key: ${ELECTRICITY_MAPS_API_KEY:}
+      base-url: ${ELECTRICITY_MAPS_BASE_URL:https://api.electricitymap.org/v3}
+      connect-timeout: ${ELECTRICITY_MAPS_CONNECT_TIMEOUT_MS:5000}
+      read-timeout: ${ELECTRICITY_MAPS_READ_TIMEOUT_MS:15000}
+      min-request-interval: ${ELECTRICITY_MAPS_MIN_REQUEST_INTERVAL_MS:1000}
+      forecast-enabled: ${ELECTRICITY_MAPS_FORECAST_ENABLED:true}
+
+resilience4j:
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 500ms
+        retryExceptions:
+          - com.enerlytics.carbon.provider.ProviderServerException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.ResourceAccessException
+        ignoreExceptions:
+          - com.enerlytics.carbon.provider.ProviderAuthenticationException
+          - com.enerlytics.carbon.provider.ProviderClientException
+          - com.enerlytics.carbon.provider.ProviderResponseException
+          - com.enerlytics.carbon.provider.ProviderRateLimitException
+    instances:
+      electricitymaps:
+        baseConfig: default
+  circuitbreaker:
+    configs:
+      default:
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 10s
+        slowCallRateThreshold: 80
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 5
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+    instances:
+      electricitymaps:
+        baseConfig: default
     reconcile-initial-delay: ${AGGREGATION_RECONCILE_INITIAL_DELAY:PT1M}
     reconcile-lookback: ${AGGREGATION_RECONCILE_LOOKBACK:PT24H}
   outbox:

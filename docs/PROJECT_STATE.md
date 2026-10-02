@@ -2,19 +2,20 @@
 
 ## Current Phase
 
-Phase 12B — Energy aggregation completed. Accepted telemetry now produces
-persistent, tenant-scoped rollups for quarter-hour, hour, day, and month buckets
-across meter, zone, building, site, and organization dimensions. Incremental
-Kafka processing recomputes bounded buckets from authoritative readings, while
-a scheduled reconciliation pass repairs buckets affected by late data, replay,
-or processing outages.
+Phase 12C — Carbon intensity provider abstraction completed. Enerlytics can now
+retrieve grid carbon intensity from the Electricity Maps API or fall back to a
+deterministic mock provider when no API key is configured. The implementation
+uses a bounded Spring `RestClient`, per-zone rate-limit awareness, Resilience4j
+retry and circuit breaker, response validation, provider-specific error
+translation, Micrometer metrics, structured credential-free logging, and
+Caffeine-cached latest values.
 
-Dashboard APIs read only `analytics.energy_aggregate`; they do not aggregate the
-raw `meter_reading` table at request time. Numeric correctness, hierarchy
-rollups, bucket boundaries, idempotency, late-event repair, reconciliation,
-tenant isolation, API validation, and consumer acknowledgment behavior are
-automatically tested. A repeatable 134,400-reading benchmark documents the
-write/rebuild and precomputed-read performance in `docs/ENERGY_AGGREGATION.md`.
+Observations are persisted in `carbon.intensity_observation` with provider,
+zone, timestamp, value, estimated flag, and retrieval time. Mock data is always
+explicitly labeled `estimated=true` and `provider=MOCK` so it can never be
+mistaken for live grid measurements. HTTP mock-server tests cover success,
+authentication failure, rate limiting, server errors, invalid bodies, and
+provider selection.
 
 ## Completed Work
 
@@ -181,6 +182,24 @@ write/rebuild and precomputed-read performance in `docs/ENERGY_AGGREGATION.md`.
 - `docs/EVENT_ARCHITECTURE.md`
 - `docs/PROJECT_STATE.md`
 
+### Phase 12C
+
+- `backend/src/main/resources/db/migration/V1_6_0__carbon_intensity_observation_schema.sql`
+- `backend/src/main/java/com/enerlytics/carbon/provider/**`
+- `backend/src/main/java/com/enerlytics/carbon/domain/**`
+- `backend/src/main/java/com/enerlytics/carbon/infrastructure/persistence/**`
+- `backend/src/main/java/com/enerlytics/carbon/config/**`
+- `backend/src/test/java/com/enerlytics/carbon/provider/MockCarbonIntensityProviderTest.java`
+- `backend/src/test/java/com/enerlytics/carbon/provider/ElectricityMapsCarbonIntensityProviderTest.java`
+- `backend/src/test/java/com/enerlytics/carbon/infrastructure/persistence/CarbonIntensityObservationRepositoryTest.java`
+- `backend/src/test/java/com/enerlytics/carbon/config/CarbonIntensityProviderSelectionTest.java`
+- `backend/pom.xml` (added `spring-boot-starter-cache`, `caffeine`, `resilience4j-spring-boot3`, `mockwebserver`)
+- `backend/src/main/java/com/enerlytics/EnerlyticsBackendApplication.java` (`@EnableCaching`)
+- `backend/src/main/resources/application.yml`
+- `.env.example`
+- `docs/EXTERNAL_INTEGRATIONS.md`
+- `docs/PROJECT_STATE.md`
+
 ### Previous Phases
 
 - `backend/src/main/resources/db/migration/V1_2_0__meter_schema.sql`
@@ -249,7 +268,11 @@ Results:
 - `EnergyAggregationConsumerTest`: 3/3 passed
 - `EnergyAnalyticsApiIntegrationTest`: 4/4 passed
 - `EnergyAggregationBenchmarkTest`: 1/1 passed
-- **Total: 74 tests passed, 0 failures**
+- `MockCarbonIntensityProviderTest`: 5/5 passed
+- `ElectricityMapsCarbonIntensityProviderTest`: 9/9 passed
+- `CarbonIntensityObservationRepositoryTest`: 2/2 passed
+- `CarbonIntensityProviderSelectionTest`: 1/1 passed
+- **Total: 91 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
 
 Energy benchmark dataset and observed development-host timings are documented in
@@ -305,6 +328,14 @@ remains valid.
 - A dedicated DLQ topic is not yet wired; invalid samples are persisted to
   `meter_reading_rejected` and emitted as `MeterReadingRejected` events instead.
 
+### Carbon Intensity Provider
+
+- The implementation supports the Electricity Maps v3 endpoints (`/carbon-intensity/latest`, `/history`, `/forecast`).
+- Only Electricity Maps and the deterministic mock provider are wired; a priority-ordered fallback chain is future work.
+- Cache TTL is global; per-zone TTL overrides are future work.
+- Resilience4j metrics are auto-registered by the starter; explicit dashboards and alerts are future work.
+- Forecast availability depends on the Electricity Maps subscription plan.
+
 ### Energy Aggregation
 
 - Day and month buckets currently use UTC boundaries; site-local reporting periods are a future enhancement.
@@ -343,7 +374,7 @@ remains valid.
 ### Local Tooling
 
 - The current host does not have Java 21, Maven, or Docker on PATH. Validation
-  used temporary portable Java 21, Maven 3.9.16, and Node 24.15.0 toolchains.
+  used temporary portable Java 21, Maven 3.9.16, and Node 24.21.0 toolchains.
 
 ## Technical Debt
 
@@ -364,8 +395,7 @@ remains valid.
 
 ## Next Recommended Task
 
-1. Implement carbon-intensity provider abstraction and persist provider observations.
-2. Calculate location-based carbon emissions from versioned energy aggregates.
+1. Calculate location-based carbon emissions from versioned energy aggregates and provider observations.
 3. Add real-time energy/carbon analytics delivery to the frontend.
 4. Extract a shared test fixture helper for users, organizations, roles, and tokens.
 5. Add CI pipelines that build and test both `backend` and `backend/telemetry-simulator`.

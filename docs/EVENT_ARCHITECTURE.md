@@ -1,6 +1,6 @@
 # Enerlytics Event-Driven Telemetry Architecture
 
-- Status: Approved design baseline; telemetry simulator, telemetry ingestion, transactional outbox, Kafka integration tests, and energy aggregation with reconciliation are implemented. Carbon, anomaly, and alert processors remain design-only.
+- Status: Approved design baseline; telemetry simulator, telemetry ingestion, transactional outbox, Kafka integration tests, energy aggregation with reconciliation, and the carbon intensity provider abstraction are implemented. Carbon emission calculation, anomaly, and alert processors remain design-only.
 - Version: 1.0
 - Date: 2026-09-20
 - Governing decisions: `ADR-0002`, `ADR-0003`, `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`
