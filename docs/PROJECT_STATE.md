@@ -2,20 +2,28 @@
 
 ## Current Phase
 
-Phase 12C — Carbon intensity provider abstraction completed. Enerlytics can now
-retrieve grid carbon intensity from the Electricity Maps API or fall back to a
-deterministic mock provider when no API key is configured. The implementation
-uses a bounded Spring `RestClient`, per-zone rate-limit awareness, Resilience4j
-retry and circuit breaker, response validation, provider-specific error
-translation, Micrometer metrics, structured credential-free logging, and
-Caffeine-cached latest values.
+Phase 12D — Carbon emissions processing completed. Enerlytics now computes
+location-based Scope 2 emissions per `CALCULATION_SPEC.md`: for each meter-level
+hourly energy aggregate, the energy consumed (kWh) is multiplied by the grid
+carbon intensity (gCO2eq/kWh, converted exactly to kgCO2eq/kWh) of the meter's
+site grid region, then rolled up deterministically to meter, building, site, and
+organization dimensions at HOUR, DAY, and MONTH granularities.
 
-Observations are persisted in `carbon.intensity_observation` with provider,
-zone, timestamp, value, estimated flag, and retrieval time. Mock data is always
-explicitly labeled `estimated=true` and `provider=MOCK` so it can never be
-mistaken for live grid measurements. HTTP mock-server tests cover success,
-authentication failure, rate limiting, server errors, invalid bodies, and
-provider selection.
+Canonical values are persisted in `carbon.emission` with exact decimal
+arithmetic (scale 9, `HALF_EVEN`), and all three exposure units — gCO2eq,
+kgCO2eq, and tCO2eq — are derived and stored per bucket. Each row carries
+provenance: grid region, provider/source, estimated flag, quality status,
+energy-weighted coverage ratio, missing-factor hours, calculation run id, and
+computation timestamp. A unique key on `(organization, dimension, granularity,
+bucket_start)` makes recalculation idempotent: late readings and corrected
+intensity observations update the same row under a new run id instead of
+duplicating it.
+
+Quality semantics follow the spec: missing or stale factors (older than 24h)
+are never substituted with zero — buckets are marked `UNAVAILABLE` or `PARTIAL`
+with explicit coverage; estimated provider values propagate `estimated=true`
+and `ESTIMATED` quality; realized carbon intensity is always energy-weighted
+(emissions ÷ covered energy), never an arithmetic mean.
 
 ## Completed Work
 
@@ -200,6 +208,21 @@ provider selection.
 - `docs/EXTERNAL_INTEGRATIONS.md`
 - `docs/PROJECT_STATE.md`
 
+### Phase 12D
+
+- `backend/src/main/resources/db/migration/V1_7_0__carbon_emission_schema.sql`
+- `backend/src/main/java/com/enerlytics/carbon/domain/CarbonEmissionEntity.java`
+- `backend/src/main/java/com/enerlytics/carbon/infrastructure/persistence/CarbonEmissionRepository.java`
+- `backend/src/main/java/com/enerlytics/carbon/infrastructure/persistence/CarbonIntensityObservationRepository.java`
+- `backend/src/main/java/com/enerlytics/carbon/application/CarbonEmissionCalculationService.java`
+- `backend/src/main/java/com/enerlytics/carbon/application/CarbonAnalyticsService.java`
+- `backend/src/main/java/com/enerlytics/carbon/api/CarbonAnalyticsController.java`
+- `backend/src/main/java/com/enerlytics/carbon/api/dto/**`
+- `backend/src/main/java/com/enerlytics/meter/infrastructure/persistence/MeterRepository.java`
+- `backend/src/test/java/com/enerlytics/carbon/application/CarbonEmissionCalculationServiceTest.java`
+- `backend/src/test/java/com/enerlytics/carbon/api/CarbonAnalyticsApiIntegrationTest.java`
+- `docs/PROJECT_STATE.md`
+
 ### Previous Phases
 
 - `backend/src/main/resources/db/migration/V1_2_0__meter_schema.sql`
@@ -272,7 +295,9 @@ Results:
 - `ElectricityMapsCarbonIntensityProviderTest`: 9/9 passed
 - `CarbonIntensityObservationRepositoryTest`: 2/2 passed
 - `CarbonIntensityProviderSelectionTest`: 1/1 passed
-- **Total: 91 tests passed, 0 failures**
+- `CarbonEmissionCalculationServiceTest`: 12/12 passed
+- `CarbonAnalyticsApiIntegrationTest`: 2/2 passed
+- **Total: 105 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
 
 Energy benchmark dataset and observed development-host timings are documented in
@@ -344,6 +369,21 @@ remains valid.
 - `EnergyAggregationUpdated` outbox events are not emitted yet; they will be added with downstream carbon processing.
 - The documented benchmark uses H2 in PostgreSQL compatibility mode. Production PostgreSQL query plans and p95/p99 targets remain a production-hardening task.
 
+### Carbon Emissions
+
+- Emission buckets are computed on demand by the analytics APIs rather than
+  incrementally by a Kafka consumer; a scheduled/event-driven emission pipeline
+  should be added once `EnergyAggregationUpdated` events exist.
+- Factor resolution is zone-level via `site.grid_region_code` (falling back to
+  `site.country`); zones/buildings inherit their site's region. Meters in
+  archived sites are excluded because only ACTIVE meters are resolved.
+- Staleness is a fixed 24-hour window relative to each energy bucket start; a
+  configurable per-provider freshness policy is future work.
+- Carbon recalculation replaces the bucket row in place (new `calculation_run_id`);
+  a full revision history table for audit replay is future work.
+- `QUARTER_HOUR` granularity is intentionally unsupported for carbon; emissions
+  are computed from hourly factors and aggregate to HOUR/DAY/MONTH.
+
 ### Meter Domain
 
 - No meter channel abstraction yet; all readings are associated with a single meter
@@ -395,7 +435,8 @@ remains valid.
 
 ## Next Recommended Task
 
-1. Calculate location-based carbon emissions from versioned energy aggregates and provider observations.
+1. Add real-time analytics APIs and alert processing (threshold/anomaly rules over aggregates and emissions).
+2. Wire incremental emission recalculation to `EnergyAggregationUpdated` events or a scheduled job.
 3. Add real-time energy/carbon analytics delivery to the frontend.
 4. Extract a shared test fixture helper for users, organizations, roles, and tokens.
 5. Add CI pipelines that build and test both `backend` and `backend/telemetry-simulator`.

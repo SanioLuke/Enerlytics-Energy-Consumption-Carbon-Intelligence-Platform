@@ -39,4 +39,12 @@ public interface MeterRepository extends JpaRepository<MeterEntity, UUID>, JpaSp
 
     @Query("SELECT m FROM MeterEntity m JOIN FETCH m.site WHERE m.simulated = true AND m.status = :status")
     List<MeterEntity> findBySimulatedTrueAndStatus(@Param("status") MeterStatus status);
+
+    List<MeterEntity> findByOrganization_IdAndStatus(UUID organizationId, MeterStatus status);
+
+    List<MeterEntity> findByOrganization_IdAndSite_IdAndStatus(UUID organizationId, UUID siteId, MeterStatus status);
+
+    List<MeterEntity> findByOrganization_IdAndBuilding_IdAndStatus(UUID organizationId, UUID buildingId, MeterStatus status);
+
+    List<MeterEntity> findByOrganization_IdAndZone_IdAndStatus(UUID organizationId, UUID zoneId, MeterStatus status);
 }
