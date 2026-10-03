@@ -82,6 +82,18 @@ enerlytics:
   aggregation:
     consumer-enabled: ${AGGREGATION_CONSUMER_ENABLED:true}
     reconcile-interval: ${AGGREGATION_RECONCILE_INTERVAL:PT5M}
+  anomaly:
+    rolling-window-hours: ${ANOMALY_ROLLING_WINDOW_HOURS:24}
+    rolling-mean-threshold-pct: ${ANOMALY_ROLLING_MEAN_THRESHOLD_PCT:50}
+    zscore-threshold: ${ANOMALY_ZSCORE_THRESHOLD:3}
+    same-hour-lookback-days: ${ANOMALY_SAME_HOUR_LOOKBACK_DAYS:14}
+    same-hour-min-samples: ${ANOMALY_SAME_HOUR_MIN_SAMPLES:5}
+    same-hour-threshold-pct: ${ANOMALY_SAME_HOUR_THRESHOLD_PCT:60}
+    percentage-threshold-pct: ${ANOMALY_PERCENTAGE_THRESHOLD_PCT:75}
+    startup-hours: ${ANOMALY_STARTUP_HOURS:48}
+    baseline-lookback-days: ${ANOMALY_BASELINE_LOOKBACK_DAYS:35}
+    min-completeness-pct: ${ANOMALY_MIN_COMPLETENESS_PCT:50}
+    min-expected-kwh: ${ANOMALY_MIN_EXPECTED_KWH:0.001}
   carbon-intensity:
     cache-ttl: ${CARBON_INTENSITY_CACHE_TTL:PT5M}
     electricity-maps:

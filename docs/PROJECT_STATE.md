@@ -2,7 +2,30 @@
 
 ## Current Phase
 
-Phase 13 — Configurable electricity tariff engine completed. Enerlytics can now
+Phase 14 — Interpretable energy anomaly detection completed. The anomaly module
+uses deterministic statistical detectors rather than an LLM: trailing rolling
+mean percentage deviation, rolling population z-score, prior-day same-hour
+baseline, and a historical same-hour mean across configurable prior days. All
+detectors implement a common `AnomalyDetector` interface so future statistical
+or ML models can be introduced without changing orchestration, persistence, or
+APIs.
+
+Canonical anomaly records identify the entity and timestamp and persist actual
+and expected kWh, signed deviation percentage, method, confidence, severity,
+plain-language explanation, calculation run, and detection time. Detection runs
+are replay-safe: existing method results in the requested range are replaced.
+History APIs exclude suppressed records.
+
+False-alert controls exclude aggregates below the configured telemetry
+completeness threshold, require contiguous rolling windows and minimum baseline
+samples, suppress the configurable startup period from the entity's first
+hourly aggregate, and suppress candidates covered by organization/entity
+maintenance windows. Maintenance suppressions remain stored for auditability
+but are not returned as active anomaly history.
+
+### Phase 13 — Configurable electricity tariff engine (prior phase)
+
+Phase 13 completed configurable electricity tariffs. Enerlytics can now
 price energy consumption with `FLAT_RATE` and `TIME_OF_USE` tariffs assigned per
 site. Tariffs carry currency, IANA timezone, and an effective date range;
 overlapping effective ranges per site are rejected. Rate windows specify day
@@ -234,6 +257,21 @@ and `ESTIMATED` quality; realized carbon intensity is always energy-weighted
 - `docs/EXTERNAL_INTEGRATIONS.md`
 - `docs/PROJECT_STATE.md`
 
+### Phase 14
+
+- `backend/src/main/resources/db/migration/V1_9_0__anomaly_schema.sql`
+- `backend/src/main/java/com/enerlytics/anomaly/domain/**`
+- `backend/src/main/java/com/enerlytics/anomaly/detection/**`
+- `backend/src/main/java/com/enerlytics/anomaly/config/**`
+- `backend/src/main/java/com/enerlytics/anomaly/infrastructure/persistence/**`
+- `backend/src/main/java/com/enerlytics/anomaly/application/**`
+- `backend/src/main/java/com/enerlytics/anomaly/api/**`
+- `backend/src/test/java/com/enerlytics/anomaly/detection/InterpretableDetectorsTest.java`
+- `backend/src/test/java/com/enerlytics/anomaly/application/AnomalyDetectionServiceTest.java`
+- `backend/src/main/resources/application.yml`
+- `.env.example`
+- `docs/PROJECT_STATE.md`
+
 ### Phase 13
 
 - `backend/src/main/resources/db/migration/V1_8_0__billing_schema.sql`
@@ -338,7 +376,9 @@ Results:
 - `CarbonAnalyticsApiIntegrationTest`: 2/2 passed
 - `CostCalculationServiceTest`: 14/14 passed
 - `CostAnalyticsApiIntegrationTest`: 1/1 passed
-- **Total: 120 tests passed, 0 failures**
+- `InterpretableDetectorsTest`: 6/6 passed
+- `AnomalyDetectionServiceTest`: 5/5 passed
+- **Total: 131 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
 
 Energy benchmark dataset and observed development-host timings are documented in
@@ -443,6 +483,22 @@ remains valid.
 - Currency conversion is not supported; baseline comparison rejects periods in
   different currencies.
 
+### Anomaly Detection
+
+- Detection currently operates on canonical UTC hourly aggregates. Site-local
+  same-hour baselines and holiday/calendar segmentation are future work.
+- Thresholds, window lengths, startup duration, minimum completeness, and
+  baseline sample requirements are environment-configurable globally; per-site
+  and per-meter policy overrides are future work.
+- Maintenance windows support organization-wide or exact entity scopes. Parent
+  facility maintenance inheritance (for example, site window suppressing its
+  meters) requires effective hierarchy traversal and is future work.
+- Detection runs on demand through the API. Incremental execution from
+  `EnergyAggregationUpdated` and notification routing are future work.
+- Confidence is a deterministic score derived from threshold exceedance, not a
+  calibrated probability. The detector interface is the extension point for
+  later versioned statistical or ML models.
+
 ### Meter Domain
 
 - No meter channel abstraction yet; all readings are associated with a single meter
@@ -494,8 +550,8 @@ remains valid.
 
 ## Next Recommended Task
 
-1. Add real-time analytics APIs and alert processing (threshold/anomaly rules over aggregates and emissions).
-2. Wire incremental emission/cost recalculation to `EnergyAggregationUpdated` events or a scheduled job.
-3. Add real-time energy/carbon analytics delivery to the frontend.
+1. Add alert rules and notification routing from persisted anomalies and thresholds.
+2. Wire incremental anomaly/emission/cost recalculation to `EnergyAggregationUpdated` events or scheduled jobs.
+3. Add real-time energy, carbon, cost, and anomaly analytics delivery to the frontend.
 4. Extract a shared test fixture helper for users, organizations, roles, and tokens.
 5. Add CI pipelines that build and test both `backend` and `backend/telemetry-simulator`.

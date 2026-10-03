@@ -20,4 +20,8 @@ public interface EnergyAggregateRepository extends JpaRepository<EnergyAggregate
     List<EnergyAggregateEntity> findByOrganizationIdAndDimensionTypeAndDimensionIdAndGranularityAndBucketStartBetweenOrderByBucketStart(
             UUID organizationId, DimensionType dimensionType, UUID dimensionId,
             AggregationGranularity granularity, Instant from, Instant to);
+
+    Optional<EnergyAggregateEntity> findFirstByOrganizationIdAndDimensionTypeAndDimensionIdAndGranularityOrderByBucketStart(
+            UUID organizationId, DimensionType dimensionType, UUID dimensionId,
+            AggregationGranularity granularity);
 }
