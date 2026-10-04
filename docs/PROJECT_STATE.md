@@ -2,19 +2,42 @@
 
 ## Current Phase
 
-Phase 14 — Interpretable energy anomaly detection completed. The anomaly module
-uses deterministic statistical detectors rather than an LLM: trailing rolling
-mean percentage deviation, rolling population z-score, prior-day same-hour
-baseline, and a historical same-hour mean across configurable prior days. All
-detectors implement a common `AnomalyDetector` interface so future statistical
-or ML models can be introduced without changing orchestration, persistence, or
-APIs.
+Phase 15 — Alert-rule engine completed. Organizations can create configurable
+alert rules scoped to `ORGANIZATION`, `SITE`, `BUILDING`, or `METER` with a
+metric, operator (`GREATER_THAN`, `LESS_THAN`, `EQUALS`, `NOT_EQUALS`), threshold,
+evaluation window, severity (`INFO`, `WARNING`, `CRITICAL`), cooldown, and
+enabled status. The evaluator maps each `AlertType` (`HIGH_CONSUMPTION`,
+`HIGH_DEMAND`, `CARBON_INTENSITY_HIGH`, `METER_OFFLINE`, `ABNORMAL_USAGE`,
+`TARGET_EXCEEDED`) to a tenant-scoped metric: energy aggregates, carbon
+emissions/intensity, meter heartbeat state, anomaly count, and sustainability
+targets.
+
+Duplicate alert storms are prevented by a per-rule cooldown. When an alert
+instance is triggered, persisted, and published to the outbox, subsequent
+evaluations within the cooldown window skip the rule. Alert instances carry a
+lifecycle (`OPEN`, `ACKNOWLEDGED`, `RESOLVED`) with timestamps and actor details
+for each transition, plus a JSON `contextPayload` capturing the triggering value,
+threshold, window, and rule metadata.
+
+Lifecycle APIs allow operators to acknowledge or resolve active alerts.
+Outbox events (`AlertCreatedEvent`, `AlertAcknowledgedEvent`, `AlertResolvedEvent`)
+are serialized and placed in the existing transactional outbox for reliable
+publication to Kafka, enabling downstream notification services without
+blocking the alert transaction.
+
+### Phase 14 — Interpretable energy anomaly detection (prior phase)
+
+Phase 14 completed interpretable anomaly detection. The anomaly module uses
+deterministic statistical detectors rather than an LLM: trailing rolling mean
+percentage deviation, rolling population z-score, prior-day same-hour baseline,
+and historical same-hour mean across configurable prior days. All detectors
+implement a common `AnomalyDetector` interface so future statistical or ML models
+can be introduced without changing orchestration, persistence, or APIs.
 
 Canonical anomaly records identify the entity and timestamp and persist actual
 and expected kWh, signed deviation percentage, method, confidence, severity,
 plain-language explanation, calculation run, and detection time. Detection runs
-are replay-safe: existing method results in the requested range are replaced.
-History APIs exclude suppressed records.
+are replay-safe. History APIs exclude suppressed records.
 
 False-alert controls exclude aggregates below the configured telemetry
 completeness threshold, require contiguous rolling windows and minimum baseline
@@ -257,6 +280,21 @@ and `ESTIMATED` quality; realized carbon intensity is always energy-weighted
 - `docs/EXTERNAL_INTEGRATIONS.md`
 - `docs/PROJECT_STATE.md`
 
+### Phase 15
+
+- `backend/src/main/resources/db/migration/V1_10_0__alert_schema.sql`
+- `backend/src/main/java/com/enerlytics/alert/domain/**`
+- `backend/src/main/java/com/enerlytics/alert/infrastructure/persistence/**`
+- `backend/src/main/java/com/enerlytics/alert/application/AlertEvaluationService.java`
+- `backend/src/main/java/com/enerlytics/alert/application/AlertLifecycleService.java`
+- `backend/src/main/java/com/enerlytics/alert/application/AlertMetricsResolver.java`
+- `backend/src/main/java/com/enerlytics/alert/application/AlertOutbox.java`
+- `backend/src/main/java/com/enerlytics/alert/api/AlertController.java`
+- `backend/src/main/java/com/enerlytics/alert/api/dto/**`
+- `backend/src/main/java/com/enerlytics/alert/api/event/**`
+- `backend/src/test/java/com/enerlytics/alert/application/AlertEvaluationServiceTest.java`
+- `docs/PROJECT_STATE.md`
+
 ### Phase 14
 
 - `backend/src/main/resources/db/migration/V1_9_0__anomaly_schema.sql`
@@ -378,7 +416,8 @@ Results:
 - `CostAnalyticsApiIntegrationTest`: 1/1 passed
 - `InterpretableDetectorsTest`: 6/6 passed
 - `AnomalyDetectionServiceTest`: 5/5 passed
-- **Total: 131 tests passed, 0 failures**
+- `AlertEvaluationServiceTest`: 4/4 passed
+- **Total: 135 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
 
 Energy benchmark dataset and observed development-host timings are documented in
@@ -483,6 +522,24 @@ remains valid.
 - Currency conversion is not supported; baseline comparison rejects periods in
   different currencies.
 
+### Alert Engine
+
+- Alert rules are persisted per organization and scoped to `ORGANIZATION`,
+  `SITE`, `BUILDING`, or `METER`. Parent-facility inheritance is not applied;
+  a site-scoped rule does not automatically cover the site's meters or buildings.
+- Cooldown deduplication uses a simple `lastTriggeredAt` per rule. Cross-entity
+  deduplication and multi-condition composite rules are future work.
+- Lifecycle transitions validate actor identity but do not record a transition
+  history table; only the most recent acknowledge/resolve metadata is stored.
+- Metrics for `CARBON_INTENSITY_HIGH` and `TARGET_EXCEEDED` require the carbon
+  and target materialized data paths; target evaluation currently resolves
+  available aggregates and anomaly counts.
+- Outbox events are serialized and enqueued synchronously in the alert
+  transaction; a background relay publishes them to Kafka like telemetry
+  outbox events. Retry metadata per outbox record is future work.
+- Alert notifications (email, SMS, webhooks) are not implemented; the events
+  provide the integration point.
+
 ### Anomaly Detection
 
 - Detection currently operates on canonical UTC hourly aggregates. Site-local
@@ -550,7 +607,7 @@ remains valid.
 
 ## Next Recommended Task
 
-1. Add alert rules and notification routing from persisted anomalies and thresholds.
+1. Add notification delivery channels (email, SMS, webhook, in-app) consuming alert outbox events.
 2. Wire incremental anomaly/emission/cost recalculation to `EnergyAggregationUpdated` events or scheduled jobs.
 3. Add real-time energy, carbon, cost, and anomaly analytics delivery to the frontend.
 4. Extract a shared test fixture helper for users, organizations, roles, and tokens.
