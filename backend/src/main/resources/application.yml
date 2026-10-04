@@ -94,6 +94,16 @@ enerlytics:
     baseline-lookback-days: ${ANOMALY_BASELINE_LOOKBACK_DAYS:35}
     min-completeness-pct: ${ANOMALY_MIN_COMPLETENESS_PCT:50}
     min-expected-kwh: ${ANOMALY_MIN_EXPECTED_KWH:0.001}
+  forecast:
+    history-lookback-days: ${FORECAST_HISTORY_LOOKBACK_DAYS:28}
+    min-history-samples-hour: ${FORECAST_MIN_HISTORY_SAMPLES_HOUR:336}
+    min-history-samples-day: ${FORECAST_MIN_HISTORY_SAMPLES_DAY:14}
+    min-completeness-pct: ${FORECAST_MIN_COMPLETENESS_PCT:50}
+    min-seasonal-samples: ${FORECAST_MIN_SEASONAL_SAMPLES:2}
+    interval-z: ${FORECAST_INTERVAL_Z:1.96}
+    fallback-margin-pct: ${FORECAST_FALLBACK_MARGIN_PCT:15}
+    mape-min-actual-kwh: ${FORECAST_MAPE_MIN_ACTUAL_KWH:0.001}
+    trend-lookback-days: ${FORECAST_TREND_LOOKBACK_DAYS:14}
   carbon-intensity:
     cache-ttl: ${CARBON_INTENSITY_CACHE_TTL:PT5M}
     electricity-maps:
