@@ -88,6 +88,11 @@ The dashboard delivers:
   empty state instead of a fabricated value. Axes and tooltips carry
   explicit units; `aria` descriptions are enabled; buckets with no data
   render as gaps, never zero.
+- **Visual polish** — Chart-card headers use baseline alignment; the chart
+  legend moved to the top-right so it no longer overlaps the y-axis name;
+  series names no longer duplicate units, preventing tooltips like
+  "Consumption (kWh) 31.1 kWh"; KPI tile labels wrap instead of truncating
+  on narrow mobile tiles.
 - **Filter bar** — organization, site, period presets (today / yesterday /
   last 7 / last 30 days), custom date range, previous-period comparison
   toggle, manual refresh, and the required `Last updated HH:MM:SS UTC`
@@ -524,6 +529,9 @@ and `ESTIMATED` quality; realized carbon intensity is always energy-weighted
 ### Phase 19
 
 - `frontend/src/app/features/overview/dashboard.models.ts`
+- `frontend/src/app/features/overview/chart-card.component.ts` (baseline header alignment)
+- `frontend/src/app/features/overview/kpi-tile.component.ts` (label wrapping on narrow tiles)
+- `frontend/src/app/features/overview/chart-options.ts` (remove duplicate units from series names)
 - `frontend/src/app/features/overview/dashboard-data.service.ts`
 - `frontend/src/app/features/overview/dashboard-filter-bar.component.ts`
 - `frontend/src/app/features/overview/kpi-tile.component.ts`
@@ -533,7 +541,7 @@ and `ESTIMATED` quality; realized carbon intensity is always energy-weighted
 - `frontend/src/app/features/overview/dashboard-data.service.spec.ts`
 - `frontend/src/app/features/overview/chart-options.spec.ts`
 - `frontend/src/app/core/charts/echart.component.ts`
-- `frontend/src/app/core/charts/chart-theme.ts`
+- `frontend/src/app/core/charts/chart-theme.ts` (legend moved to top-right)
 - `frontend/src/app/core/api/api-client.ts` (empty-path `orgPath` fix)
 - `frontend/src/app/core/context/context.service.ts` (CUSTOM period, from/to params)
 - `frontend/src/app/core/api/contracts.ts` (sites page, carbon, cost, alert DTOs)

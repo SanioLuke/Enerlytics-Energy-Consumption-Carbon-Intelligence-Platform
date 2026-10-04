@@ -68,9 +68,7 @@ import type { KpiValue } from './dashboard.models';
       text-transform: uppercase;
       letter-spacing: 0.04em;
       color: var(--ely-text-3);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      line-height: 1.25;
     }
 
     .value { font: var(--ely-text-kpi-dense); }

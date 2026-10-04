@@ -55,7 +55,7 @@ export function consumptionOption(
   const labels = points.map((p) => bucketLabel(p.bucketStart, granularity, timeZone));
   const series: Record<string, unknown>[] = [
     {
-      name: `Consumption (${unitForGranularity(granularity)})`,
+      name: 'Consumption',
       type: 'line',
       data: points.map((p) => p.value),
       showSymbol: false,
@@ -100,7 +100,7 @@ export function demandOption(
     yAxis: unitAxis('kW', 'Demand'),
     series: [
       {
-        name: 'Average demand (kW)',
+        name: 'Average demand',
         type: 'line',
         data: points.map((p) => p.value),
         showSymbol: false,
@@ -109,7 +109,7 @@ export function demandOption(
         areaStyle: { opacity: 0.08 },
       },
       {
-        name: 'Peak demand (kW)',
+        name: 'Peak demand',
         type: 'line',
         data: points.map((p) => p.secondary ?? null),
         showSymbol: false,
@@ -147,7 +147,7 @@ export function siteEnergyOption(slices: SiteEnergySlice[]): EChartsCoreOption {
     },
     series: [
       {
-        name: 'Energy (kWh)',
+        name: 'Energy',
         type: 'bar',
         data: sorted.map((s) => s.energyKwh),
         barMaxWidth: 18,
@@ -166,7 +166,7 @@ export function carbonOption(
   const labels = buckets.map((b) => bucketLabel(b.bucketStart, granularity, timeZone));
   const series: Record<string, unknown>[] = [
     {
-      name: 'Emissions (kgCO₂e)',
+      name: 'Emissions',
       type: 'line',
       // UNAVAILABLE buckets carry null emissions — rendered as gaps, not zero.
       data: buckets.map((b) => b.emissionsKgCo2Eq ?? null),
@@ -207,7 +207,7 @@ export function costOption(
   const labels = buckets.map((b) => bucketLabel(b.bucketStart, granularity, timeZone));
   const series: Record<string, unknown>[] = [
     {
-      name: `Cost (${currency})`,
+      name: 'Cost',
       type: 'line',
       data: buckets.map((b) => b.totalCost ?? null),
       showSymbol: false,

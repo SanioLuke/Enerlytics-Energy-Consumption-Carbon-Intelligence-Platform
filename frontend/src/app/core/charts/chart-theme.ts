@@ -47,10 +47,12 @@ export const CHART_BASE: EChartsCoreOption = {
   },
   grid: { ...GRID_BASE },
   legend: {
+    right: 0,
     top: 0,
     icon: 'rect',
     itemWidth: 12,
     itemHeight: 3,
+    itemGap: 16,
     textStyle: { color: '#59554F', fontSize: 11 },
   },
   tooltip: { ...TOOLTIP_BASE },

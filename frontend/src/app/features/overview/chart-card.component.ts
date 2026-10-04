@@ -31,12 +31,12 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     .card { display: flex; flex-direction: column; min-height: 300px; }
     .header {
       display: flex;
-      align-items: flex-start;
+      align-items: baseline;
       justify-content: space-between;
       gap: var(--ely-space-3);
       margin-bottom: var(--ely-space-3);
     }
-    .titles { display: flex; align-items: baseline; gap: var(--ely-space-2); min-width: 0; }
+    .titles { display: flex; align-items: baseline; gap: var(--ely-space-2); min-width: 0; flex-wrap: wrap; }
     .title { margin: 0; font: var(--ely-text-section); }
     .subtitle { font: var(--ely-text-micro); color: var(--ely-text-3); }
     .updated { font: var(--ely-text-micro); color: var(--ely-text-3); white-space: nowrap; }

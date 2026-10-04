@@ -38,7 +38,7 @@ describe('consumptionOption', () => {
     );
     expect(option.series).toHaveLength(1);
     expect(option.series?.[0].data).toEqual([10, 20, null]);
-    expect(option.series?.[0].name).toContain('kWh');
+    expect(option.series?.[0].name).toBe('Consumption');
     expect(option.xAxis?.data).toHaveLength(3);
     expect(option.aria?.enabled).toBe(true);
   });
@@ -83,7 +83,8 @@ describe('demandOption', () => {
       ),
     );
     expect(option.series).toHaveLength(2);
-    expect(option.series?.[0].name).toContain('kW');
+    expect(option.series?.[0].name).toBe('Average demand');
+    expect(option.series?.[1].name).toBe('Peak demand');
     expect(option.series?.[0].data).toEqual([55, null]);
     expect(option.series?.[1].data).toEqual([78, null]);
   });
@@ -131,7 +132,7 @@ describe('carbonOption', () => {
   it('keeps UNAVAILABLE buckets as null gaps, never zero', () => {
     const option = asOption(carbonOption(buckets, null, 'DAY', 'UTC'));
     expect(option.series?.[0].data).toEqual([410, null]);
-    expect(option.series?.[0].name).toContain('kgCO₂e');
+    expect(option.series?.[0].name).toBe('Emissions');
   });
 });
 
@@ -152,7 +153,7 @@ describe('costOption', () => {
       },
     ];
     const option = asOption(costOption(buckets, null, 'EUR', 'DAY', 'UTC'));
-    expect(option.series?.[0].name).toBe('Cost (EUR)');
+    expect(option.series?.[0].name).toBe('Cost');
     expect((option.yAxis as { name?: string }).name).toContain('EUR');
     expect(option.series?.[0].data).toEqual([31.5]);
   });
