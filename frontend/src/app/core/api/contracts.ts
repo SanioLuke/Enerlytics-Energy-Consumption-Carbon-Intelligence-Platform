@@ -264,6 +264,35 @@ export interface TariffResponse {
 // Forecast
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Live energy monitoring (SSE snapshots)
+// ---------------------------------------------------------------------------
+
+export interface LiveEnergySnapshot {
+  generatedAt: string;
+  organizationId: string;
+  siteId?: string;
+  buildingId?: string;
+  currentDemandKw: number;
+  activeMeterCount: number;
+  offlineMeterCount: number;
+  meterReadings: MeterLiveReading[];
+  recentTrend: TrendPoint[];
+}
+
+export interface MeterLiveReading {
+  meterId: string;
+  meterName?: string;
+  currentPowerKw: number;
+  lastSeenAt: string;
+  status: 'ONLINE' | 'OFFLINE';
+}
+
+export interface TrendPoint {
+  timestamp: string;
+  demandKw: number;
+}
+
 export interface ForecastPointResponse {
   timestamp: string;
   predictedKwh: string;

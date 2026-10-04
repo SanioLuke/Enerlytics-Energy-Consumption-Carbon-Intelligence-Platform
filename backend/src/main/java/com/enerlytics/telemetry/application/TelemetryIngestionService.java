@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ public class TelemetryIngestionService {
     private final MeterReadingRejectedRepository rejectedRepository;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
     private final String validatedTopic;
     private final String rejectedTopic;
 
@@ -38,6 +40,7 @@ public class TelemetryIngestionService {
                                      MeterReadingRejectedRepository rejectedRepository,
                                      OutboxRepository outboxRepository,
                                      ObjectMapper objectMapper,
+                                     ApplicationEventPublisher eventPublisher,
                                      @Value("${enerlytics.kafka.topics.meter-reading-validated:enerlytics.telemetry.meter-reading-validated.v1}") String validatedTopic,
                                      @Value("${enerlytics.kafka.topics.meter-reading-rejected:enerlytics.telemetry.meter-reading-rejected.v1}") String rejectedTopic) {
         this.validator = validator;
@@ -45,6 +48,7 @@ public class TelemetryIngestionService {
         this.rejectedRepository = rejectedRepository;
         this.outboxRepository = outboxRepository;
         this.objectMapper = objectMapper;
+        this.eventPublisher = eventPublisher;
         this.validatedTopic = validatedTopic;
         this.rejectedTopic = rejectedTopic;
     }
@@ -92,6 +96,7 @@ public class TelemetryIngestionService {
                 meter.getId(),
                 meter.getOrganization().getId(),
                 meter.getSite().getId(),
+                meter.getBuilding() != null ? meter.getBuilding().getId() : null,
                 event.timestamp(),
                 event.energyKwh(),
                 event.powerKw(),
@@ -102,6 +107,7 @@ public class TelemetryIngestionService {
                 event.qualityStatus());
 
         writeOutbox(validatedTopic, partitionKey(meter), validatedEvent);
+        eventPublisher.publishEvent(validatedEvent);
     }
 
     private void persistRejected(MeterReadingReceivedEvent event, String reasonCode, String reasonDetail) {

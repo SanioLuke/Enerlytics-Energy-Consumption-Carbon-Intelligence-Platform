@@ -104,6 +104,15 @@ enerlytics:
     fallback-margin-pct: ${FORECAST_FALLBACK_MARGIN_PCT:15}
     mape-min-actual-kwh: ${FORECAST_MAPE_MIN_ACTUAL_KWH:0.001}
     trend-lookback-days: ${FORECAST_TREND_LOOKBACK_DAYS:14}
+  live:
+    energy:
+      publish-interval-ms: ${LIVE_ENERGY_PUBLISH_INTERVAL_MS:1000}
+      offline-threshold-ms: ${LIVE_ENERGY_OFFLINE_THRESHOLD_MS:300000}
+      offline-check-interval-ms: ${LIVE_ENERGY_OFFLINE_CHECK_INTERVAL_MS:60000}
+      trend-resolution-ms: ${LIVE_ENERGY_TREND_RESOLUTION_MS:10000}
+      trend-max-points: ${LIVE_ENERGY_TREND_MAX_POINTS:360}
+      emitter-timeout-ms: ${LIVE_ENERGY_EMITTER_TIMEOUT_MS:1800000}
+      max-meter-readings-per-snapshot: ${LIVE_ENERGY_MAX_METER_READINGS:50}
   carbon-intensity:
     cache-ttl: ${CARBON_INTENSITY_CACHE_TTL:PT5M}
     electricity-maps:

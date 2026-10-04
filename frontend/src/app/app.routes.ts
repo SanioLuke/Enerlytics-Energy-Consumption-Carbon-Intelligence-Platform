@@ -35,17 +35,10 @@ export const routes: Routes = [
       {
         path: 'live',
         loadComponent: () =>
-          import('./shared/page-placeholder.component').then(
-            (m) => m.PagePlaceholderComponent,
+          import('./features/live-energy/live-energy.component').then(
+            (m) => m.LiveEnergyComponent,
           ),
-        data: {
-          breadcrumb: 'Live Energy',
-          title: 'Live Energy',
-          icon: 'bolt',
-          description:
-            'Real-time meter telemetry and live demand monitoring — coming in the live-monitoring phase.',
-          permissions: ['telemetry:read'],
-        },
+        data: { breadcrumb: 'Live Energy', permissions: ['telemetry:read'] },
         title: 'Live Energy — Enerlytics',
       },
       {

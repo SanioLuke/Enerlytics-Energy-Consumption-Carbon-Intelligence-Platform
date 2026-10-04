@@ -43,6 +43,9 @@ class TelemetryIngestionServiceTest {
     @Mock
     private OutboxRepository outboxRepository;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
     @InjectMocks
     private TelemetryIngestionService ingestionService;
 
@@ -52,6 +55,7 @@ class TelemetryIngestionServiceTest {
     void setUp() {
         ingestionService = new TelemetryIngestionService(
                 validator, readingRepository, rejectedRepository, outboxRepository, objectMapper,
+                eventPublisher,
                 "enerlytics.telemetry.meter-reading-validated.v1",
                 "enerlytics.telemetry.meter-reading-rejected.v1");
     }

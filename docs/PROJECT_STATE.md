@@ -2,6 +2,54 @@
 
 ## Current Phase
 
+Phase 20 — Real-time energy monitoring (Live Energy) implemented end-to-end.
+The backend consumes validated telemetry internally (Spring application events,
+not raw Kafka in the browser), maintains a bounded in-memory live state, and
+publishes sanitized snapshots over SSE with heartbeat-like periodic emission
+and a REST fallback endpoint. The frontend adds a dedicated Live Energy page
+with current demand, active/offline meter counts, live trend chart, and
+site/building/meter filters. SSE updates are coalesced to the screen refresh
+cadence, and the connection auto-reconnects with exponential backoff before
+falling back to snapshot polling. Verified by lint, 50 frontend unit tests,
+151 backend tests, and an Angular production build.
+
+The live monitoring layer delivers:
+
+- **Backend state engine** — `LiveEnergyService` receives
+  `MeterReadingValidatedEvent` from the existing telemetry ingestion pipeline
+  and updates per-meter state (power, last seen, online/offline) plus per-scope
+  demand and bounded trend history. Snapshots are coalesced to a configurable
+  publish interval (default 1s), so browsers receive at most one update per
+  interval regardless of telemetry rate.
+- **Tenant-scoped SSE contract** — `GET
+  /api/v1/organizations/{orgId}/live/energy/subscribe` streams `snapshot` events;
+  `GET .../snapshot` is a REST fallback. Filters are optional `siteId` and
+  `buildingId` query params. The DTO includes `currentDemandKw`,
+  `activeMeterCount`, `offlineMeterCount`, `meterReadings`, and `recentTrend`
+  with no internal Kafka topic or raw telemetry field exposed.
+- **Offline detection** — meters move to offline when no validated reading has
+  arrived within the configured threshold (default 5 minutes); scope demand and
+  counts are recalculated on the next publish cycle.
+- **Bounded memory** — per-scope trend windows are capped by `trendMaxPoints`
+  (default 360); stale meter records are not persisted; SSE emitters are removed
+  on completion/timeout/error.
+- **Frontend live service** — `LiveEnergyService` wraps `EventSource` with
+  reconnect logic (exponential backoff 1s–30s, max 5 attempts) and transparently
+  switches to polling the snapshot endpoint if SSE remains unavailable. UI updates
+  are throttled via `sampleTime(500ms)` so high-frequency telemetry cannot
+  trigger excessive Angular change detection.
+- **Live Energy page** — filter bar (site/building/meter), status indicator,
+  KPI strip with current demand / active meters / offline meters / selected
+  meter power, a real-time trend chart, and a meter readings panel with
+  status badges and last-seen timestamps. Empty/loading/error states reuse the
+  existing reusable state components.
+- **Tests** — backend tests cover empty snapshots, active/offline transitions,
+  aggregated demand, trend bounding, and the coalesced publish cycle. Frontend
+  tests cover EventSource connection, snapshot parsing, reconnect/backoff,
+  fallback polling, filter-scoped URLs, and meter-selection filtering.
+
+### Phase 19 — Executive Overview dashboard (prior phase)
+
 Phase 19 — Executive Overview dashboard implemented against the real backend
 analytics, carbon, billing, facilities, and alert APIs on the Phase 18
 foundation. The page is wired to a cohesive dashboard query model (no
@@ -444,6 +492,31 @@ and `ESTIMATED` quality; realized carbon intensity is always energy-weighted
 - `docs/EXTERNAL_INTEGRATIONS.md`
 - `docs/PROJECT_STATE.md`
 
+### Phase 20
+
+- `backend/src/main/java/com/enerlytics/telemetry/api/event/MeterReadingValidatedEvent.java` (added `buildingId`)
+- `backend/src/main/java/com/enerlytics/telemetry/application/TelemetryIngestionService.java` (publishes `MeterReadingValidatedEvent` to application listener channel)
+- `backend/src/main/java/com/enerlytics/live/energy/api/LiveEnergyController.java`
+- `backend/src/main/java/com/enerlytics/live/energy/api/LiveEnergySnapshot.java`
+- `backend/src/main/java/com/enerlytics/live/energy/api/MeterLiveReading.java`
+- `backend/src/main/java/com/enerlytics/live/energy/api/TrendPoint.java`
+- `backend/src/main/java/com/enerlytics/live/energy/application/LiveEnergyProperties.java`
+- `backend/src/main/java/com/enerlytics/live/energy/application/LiveEnergyService.java`
+- `backend/src/test/java/com/enerlytics/live/energy/application/LiveEnergyServiceTest.java`
+- `backend/src/test/java/com/enerlytics/analytics/EnergyAggregationConsumerTest.java` (`buildingId` field)
+- `backend/src/test/java/com/enerlytics/telemetry/application/TelemetryIngestionServiceTest.java` (`ApplicationEventPublisher` mock)
+- `backend/src/main/resources/application.yml` (live energy config defaults)
+- `.env.example` (live energy environment variables)
+- `frontend/src/app/core/api/contracts.ts` (`LiveEnergySnapshot`, `MeterLiveReading`, `TrendPoint`)
+- `frontend/src/app/features/live-energy/live-energy.component.ts`
+- `frontend/src/app/features/live-energy/live-chart-options.ts`
+- `frontend/src/app/features/live-energy/live-energy.service.ts`
+- `frontend/src/app/features/live-energy/live-energy.service.spec.ts`
+- `frontend/src/app/app.routes.ts` (live route now loads real component)
+- `frontend/src/app/app.config.ts` (`LIVE_ENERGY_CONFIG` token provider)
+- `frontend/angular.json` (component-style budget increase)
+- `docs/PROJECT_STATE.md`
+
 ### Phase 19
 
 - `frontend/src/app/features/overview/dashboard.models.ts`
@@ -646,7 +719,8 @@ Results:
 - `AlertEvaluationServiceTest`: 4/4 passed
 - `ForecastProvidersTest`: 6/6 passed
 - `EnergyForecastServiceTest`: 5/5 passed
-- **Total: 146 tests passed, 0 failures**
+- `LiveEnergyServiceTest`: 5/5 passed
+- **Total: 151 tests passed, 0 failures**
 - Package build produced the Spring Boot executable JAR.
 
 Energy benchmark dataset and observed development-host timings are documented in
@@ -680,14 +754,15 @@ npm run build
 Results:
 
 - ESLint (`angular-eslint` + `typescript-eslint` flat config): clean, 0 errors
-- Vitest: 8 spec files, 43 tests passed, 0 failures
+- Vitest: 9 spec files, 50 tests passed, 0 failures
   - `api-error.spec.ts` (4), `context.service.spec.ts` (6),
     `auth.service.spec.ts` (6), `auth.interceptor.spec.ts` (4),
     `has-authority.directive.spec.ts` (3), `app.spec.ts` (2),
-    `dashboard-data.service.spec.ts` (11), `chart-options.spec.ts` (7)
+    `dashboard-data.service.spec.ts` (11), `chart-options.spec.ts` (7),
+    `live-energy.service.spec.ts` (7)
 - Production build: `ng build` succeeded; ECharts stays in lazy chunks
   (~560 kB across `charts`/`components`/`renderers` loaded only with the
-  overview route); initial bundle 548 kB raw / 134 kB estimated transfer
+  dashboard routes); initial bundle 557 kB raw / 137 kB estimated transfer
 - The host's system Node (24.6) is below Angular 22's minimum; builds used the
   portable Node 24.21.0 toolchain under `.runtime/`
 
@@ -697,6 +772,24 @@ Results:
 - `.env.example` contains only placeholder configuration keys.
 
 ## Unresolved Issues
+
+### Live Energy Monitoring
+
+- Live state is held only in memory; a server restart loses the live view until
+  the next telemetry arrives. The authoritative telemetry store remains the
+  database, and the current snapshot API regenerates from in-memory state, so
+  there is no data loss, but warm-start behavior may be enhanced later by
+  replaying the most recent reading per meter.
+- The snapshot endpoint is intentionally lightweight and does not query the
+  database; if no SSE subscribers or readings have recently arrived it returns
+  an empty-scope snapshot.
+- Per-meter display names are not pre-fetched; the SSE payload includes a meter
+  name only when the service already knows it. A future enhancement can hydrate
+  names from the meter registry on first sight of a meter.
+- Building/meter filter dropdowns are populated from the snapshot or a separate
+  API call; there is no persisted “favorite meters” list yet.
+- Meter offline detection uses a single global threshold; per-meter or per-site
+  thresholds are future work.
 
 ### Telemetry Simulator
 

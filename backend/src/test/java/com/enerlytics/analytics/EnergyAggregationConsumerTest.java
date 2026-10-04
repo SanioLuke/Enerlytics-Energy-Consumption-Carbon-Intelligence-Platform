@@ -42,7 +42,7 @@ class EnergyAggregationConsumerTest {
         UUID meterId = UUID.randomUUID();
         Instant timestamp = Instant.parse("2026-01-15T10:05:00Z");
         MeterReadingValidatedEvent event = new MeterReadingValidatedEvent(
-                UUID.randomUUID(), UUID.randomUUID(), meterId, orgId, UUID.randomUUID(), timestamp,
+                UUID.randomUUID(), UUID.randomUUID(), meterId, orgId, UUID.randomUUID(), null, timestamp,
                 BigDecimal.ONE, BigDecimal.TEN, null, null, BigDecimal.valueOf(0.95), null, "OK");
 
         consumer.consume(record(objectMapper.writeValueAsString(event)), acknowledgment);
@@ -58,7 +58,7 @@ class EnergyAggregationConsumerTest {
         UUID meterId = UUID.randomUUID();
         Instant timestamp = Instant.parse("2026-01-15T10:05:00Z");
         MeterReadingValidatedEvent event = new MeterReadingValidatedEvent(
-                UUID.randomUUID(), UUID.randomUUID(), meterId, orgId, UUID.randomUUID(), timestamp,
+                UUID.randomUUID(), UUID.randomUUID(), meterId, orgId, UUID.randomUUID(), null, timestamp,
                 BigDecimal.ONE, null, null, null, null, null, "OK");
         doThrow(new RuntimeException("database unavailable"))
                 .when(aggregationService).aggregateReading(orgId, meterId, timestamp);

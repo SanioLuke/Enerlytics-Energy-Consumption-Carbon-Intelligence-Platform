@@ -10,6 +10,7 @@ public record MeterReadingValidatedEvent(
         UUID meterId,
         UUID organizationId,
         UUID siteId,
+        UUID buildingId,
         Instant timestamp,
         BigDecimal energyKwh,
         BigDecimal powerKw,

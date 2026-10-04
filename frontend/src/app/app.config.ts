@@ -8,6 +8,10 @@ import {
 } from '@angular/router';
 import { apiErrorInterceptor } from './core/api/api-error.interceptor';
 import { authInterceptor } from './core/auth/auth.interceptor';
+import {
+  DEFAULT_LIVE_ENERGY_CONFIG,
+  LIVE_ENERGY_CONFIG,
+} from './features/live-energy/live-energy.service';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
@@ -24,5 +28,6 @@ export const appConfig: ApplicationConfig = {
       withComponentInputBinding(),
       withInMemoryScrolling({ scrollPositionRestoration: 'top' }),
     ),
+    { provide: LIVE_ENERGY_CONFIG, useValue: DEFAULT_LIVE_ENERGY_CONFIG },
   ],
 };
