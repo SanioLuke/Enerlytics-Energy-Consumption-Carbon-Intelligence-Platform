@@ -5,6 +5,8 @@
  * backend DTO records under backend/src/main/java/com/enerlytics/**&#47;api/dto.
  * When the generated OpenAPI schema is published, these can be replaced with
  * generated types without touching call sites.
+ *
+ * Note: backend BigDecimal fields serialize as JSON numbers.
  */
 
 // ---------------------------------------------------------------------------
@@ -51,12 +53,26 @@ export interface UserInfoResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Shared domain enums (API boundary values)
+// Shared envelopes and enums (API boundary values)
 // ---------------------------------------------------------------------------
 
-export type Granularity = 'HOUR' | 'DAY' | 'MONTH';
-export type DimensionType = 'ORGANIZATION' | 'SITE' | 'BUILDING' | 'METER';
-export type DataQualityStatus =
+/** Mirrors common/api/PageResponse.java — paged list envelope. */
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export type AggregationGranularity = 'HOUR' | 'DAY' | 'MONTH';
+export type DimensionType =
+  | 'ORGANIZATION'
+  | 'SITE'
+  | 'BUILDING'
+  | 'ZONE'
+  | 'METER';
+export type QualityStatus =
   | 'VALID'
   | 'ESTIMATED'
   | 'PARTIAL'
@@ -79,6 +95,7 @@ export type AnomalyMethod =
   | 'PERCENTAGE_DEVIATION';
 export type AnomalySeverity = 'LOW' | 'MEDIUM' | 'HIGH';
 export type MeterStatus = 'ONLINE' | 'OFFLINE' | 'DEGRADED' | 'INACTIVE';
+export type FloorAreaUnit = 'SQUARE_METERS' | 'SQUARE_FEET';
 
 // ---------------------------------------------------------------------------
 // Facilities (contracts/openapi/facilities.yaml)
@@ -87,20 +104,37 @@ export type MeterStatus = 'ONLINE' | 'OFFLINE' | 'DEGRADED' | 'INACTIVE';
 export interface SiteResponse {
   id: string;
   organizationId: string;
-  name: string;
   code: string;
+  name: string;
+  description?: string;
   address?: string;
-  ianaTimezone: string;
-  currency: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  postalCode?: string;
+  latitude?: number;
+  longitude?: number;
+  timezone?: string;
+  gridRegionCode?: string;
+  currency?: string;
+  floorArea?: number;
+  floorAreaUnit?: FloorAreaUnit;
   active: boolean;
+  openedOn?: string;
+  closedOn?: string;
+  createdAt: string;
+  updatedAt: string;
+  version?: number;
 }
 
 export interface BuildingResponse {
   id: string;
   siteId: string;
-  name: string;
+  organizationId: string;
   code: string;
-  floorAreaSquareMeters?: number;
+  name: string;
+  floorArea?: number;
+  floorAreaUnit?: FloorAreaUnit;
   active: boolean;
 }
 
@@ -122,69 +156,96 @@ export interface MeterResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Analytics / energy
+// Analytics / energy (analytics/api/dto/EnergyAggregateResponse)
 // ---------------------------------------------------------------------------
 
 export interface EnergyAggregateResponse {
-  dimensionType: DimensionType;
+  dimension: DimensionType;
   dimensionId: string;
-  granularity: Granularity;
+  granularity: AggregationGranularity;
   bucketStart: string;
   bucketEnd: string;
-  totalEnergyKwh: string;
-  peakPowerKw?: string;
-  avgPowerKw?: string;
+  energyConsumedKwh: number;
+  averagePowerKw?: number;
+  peakPowerKw?: number;
+  minimumPowerKw?: number;
+  averagePowerFactor?: number;
   readingCount: number;
-  completenessPct: string;
-  estimated: boolean;
-  qualityStatus: DataQualityStatus;
+  estimatedReadingCount: number;
+  dataCompletenessPercentage?: number;
+  computedAt?: string;
 }
 
 // ---------------------------------------------------------------------------
-// Carbon
+// Carbon (carbon/api/dto)
 // ---------------------------------------------------------------------------
+
+export interface CarbonIntensityResponse {
+  zone: string;
+  carbonIntensityGCo2EqPerKwh: number;
+  estimated: boolean;
+  retrievedAt: string;
+}
 
 export interface CarbonEmissionResponse {
-  dimensionType: DimensionType;
+  organizationId: string;
+  dimension: DimensionType;
   dimensionId: string;
-  granularity: Granularity;
+  granularity: AggregationGranularity;
   bucketStart: string;
-  emissionsKgco2eq?: string;
-  emissionsGco2eq?: string;
-  emissionsTco2eq?: string;
-  intensityGco2eqPerKwh?: string;
-  coveredEnergyKwh?: string;
-  coverageRatio?: string;
+  bucketEnd: string;
   gridRegionCode?: string;
+  energyConsumedKwh?: number;
+  carbonIntensityGCo2EqPerKwh?: number;
+  carbonIntensitySource?: string;
+  emissionsGCo2Eq?: number;
+  emissionsKgCo2Eq?: number;
+  emissionsTCo2Eq?: number;
+  coverageRatio?: number;
   estimated: boolean;
-  qualityStatus: DataQualityStatus;
+  qualityStatus?: string;
 }
 
-export interface CurrentIntensityResponse {
-  gridRegionCode: string;
-  intensityGco2eqPerKwh?: string;
-  observedAt?: string;
-  source?: string;
-  estimated: boolean;
-  qualityStatus: DataQualityStatus;
+export interface SiteComparisonResponse {
+  siteId: string;
+  siteName: string;
+  gridRegionCode?: string;
+  energyConsumedKwh?: number;
+  carbonIntensityGCo2EqPerKwh?: number;
+  emissionsKgCo2Eq?: number;
 }
 
 // ---------------------------------------------------------------------------
-// Billing / costs
+// Billing / costs (billing/api/dto)
 // ---------------------------------------------------------------------------
 
-export interface EnergyCostResponse {
-  dimensionType: DimensionType;
+export interface CostBucketResponse {
+  organizationId: string;
+  dimension: DimensionType;
   dimensionId: string;
-  granularity: Granularity;
+  granularity: AggregationGranularity;
   bucketStart: string;
-  energyCost?: string;
-  demandCost?: string;
-  totalCost?: string;
+  bucketEnd: string;
   currency?: string;
-  billedEnergyKwh?: string;
-  coverageRatio?: string;
-  qualityStatus: DataQualityStatus;
+  energyConsumedKwh?: number;
+  energyCost?: number;
+  demandCharge?: number;
+  totalCost?: number;
+  coverageRatio?: number;
+  qualityStatus?: string;
+  missingRateHours: number;
+}
+
+export interface BaselineCostResponse {
+  currency?: string;
+  currentFrom: string;
+  currentTo: string;
+  baselineFrom: string;
+  baselineTo: string;
+  currentTotalCost?: number;
+  baselineTotalCost?: number;
+  deltaCost?: number;
+  deltaPct?: number;
 }
 
 export interface TariffResponse {
@@ -230,7 +291,7 @@ export interface ForecastRunResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Alerts
+// Alerts (alert/api/dto)
 // ---------------------------------------------------------------------------
 
 export interface AlertRuleResponse {
@@ -251,18 +312,23 @@ export interface AlertRuleResponse {
 
 export interface AlertInstanceResponse {
   id: string;
+  organizationId: string;
   ruleId: string;
-  alertType: string;
-  severity: AlertSeverity;
-  status: AlertStatus;
+  ruleName?: string;
   scopeType: DimensionType;
   scopeId?: string;
+  alertType: string;
+  metric?: string;
+  observedValue?: number;
+  threshold?: number;
+  severity: string;
+  status: string;
   triggeredAt: string;
   acknowledgedAt?: string;
   acknowledgedBy?: string;
   resolvedAt?: string;
   resolvedBy?: string;
-  context?: Record<string, unknown>;
+  contextPayload?: string;
 }
 
 // ---------------------------------------------------------------------------

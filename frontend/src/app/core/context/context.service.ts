@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { type Granularity } from '../api/contracts';
+import { type AggregationGranularity } from '../api/contracts';
 import { AuthService } from '../auth/auth.service';
 
 export type ContextPeriod = 'TODAY' | 'YESTERDAY' | 'LAST_7_DAYS' | 'LAST_30_DAYS' | 'CUSTOM';
@@ -30,13 +30,18 @@ export class ContextService {
     buildingId: null,
   });
   private readonly periodSignal = signal<ContextPeriod>('TODAY');
-  private readonly granularitySignal = signal<Granularity>('HOUR');
+  private readonly granularitySignal = signal<AggregationGranularity>('HOUR');
   private readonly compareSignal = signal<'NONE' | 'PRIOR_PERIOD' | 'SAME_PERIOD_LAST_YEAR'>('NONE');
+  /** Custom range bounds (ISO date strings) — only meaningful for period CUSTOM. */
+  private readonly customFromSignal = signal<string | null>(null);
+  private readonly customToSignal = signal<string | null>(null);
 
   readonly scope = this.scopeSignal.asReadonly();
   readonly period = this.periodSignal.asReadonly();
   readonly granularity = this.granularitySignal.asReadonly();
   readonly comparison = this.compareSignal.asReadonly();
+  readonly customFrom = this.customFromSignal.asReadonly();
+  readonly customTo = this.customToSignal.asReadonly();
 
   /** Current tenant org id — null until the session is restored. */
   readonly organizationId = computed(
@@ -52,6 +57,8 @@ export class ContextService {
       period: this.periodSignal() === 'TODAY' ? null : this.periodSignal(),
       granularity: this.granularitySignal() === 'HOUR' ? null : this.granularitySignal(),
       compare: this.compareSignal() === 'NONE' ? null : this.compareSignal(),
+      from: this.periodSignal() === 'CUSTOM' ? this.customFromSignal() : null,
+      to: this.periodSignal() === 'CUSTOM' ? this.customToSignal() : null,
     };
   });
 
@@ -67,11 +74,17 @@ export class ContextService {
       this.parseGranularity(params.get('granularity')) ?? stored?.granularity ?? 'HOUR';
     const compare =
       this.parseCompare(params.get('compare')) ?? stored?.compare ?? 'NONE';
+    const customFrom =
+      this.parseIsoDate(params.get('from')) ?? stored?.customFrom ?? null;
+    const customTo =
+      this.parseIsoDate(params.get('to')) ?? stored?.customTo ?? null;
 
     this.scopeSignal.set({ siteId, buildingId });
     this.periodSignal.set(period);
     this.granularitySignal.set(granularity);
     this.compareSignal.set(compare);
+    this.customFromSignal.set(customFrom);
+    this.customToSignal.set(customTo);
   }
 
   setScope(siteId: string | null, buildingId: string | null = null): void {
@@ -85,7 +98,15 @@ export class ContextService {
     this.commit();
   }
 
-  setGranularity(granularity: Granularity): void {
+  /** Sets a CUSTOM period with explicit ISO date bounds (YYYY-MM-DD). */
+  setCustomRange(from: string, to: string): void {
+    this.customFromSignal.set(from);
+    this.customToSignal.set(to);
+    this.periodSignal.set('CUSTOM');
+    this.commit();
+  }
+
+  setGranularity(granularity: AggregationGranularity): void {
     this.granularitySignal.set(granularity);
     this.commit();
   }
@@ -116,6 +137,8 @@ export class ContextService {
         period: this.periodSignal(),
         granularity: this.granularitySignal(),
         compare: this.compareSignal(),
+        customFrom: this.customFromSignal(),
+        customTo: this.customToSignal(),
       }),
     );
   }
@@ -123,8 +146,10 @@ export class ContextService {
   private loadStored():
     | (ScopeSelection & {
         period: ContextPeriod;
-        granularity: Granularity;
+        granularity: AggregationGranularity;
         compare: 'NONE' | 'PRIOR_PERIOD' | 'SAME_PERIOD_LAST_YEAR';
+        customFrom: string | null;
+        customTo: string | null;
       })
     | null {
     try {
@@ -145,7 +170,7 @@ export class ContextService {
       : null;
   }
 
-  private parseGranularity(value: string | null): Granularity | null {
+  private parseGranularity(value: string | null): AggregationGranularity | null {
     return value === 'HOUR' || value === 'DAY' || value === 'MONTH' ? value : null;
   }
 
@@ -157,5 +182,9 @@ export class ContextService {
       value === 'SAME_PERIOD_LAST_YEAR'
       ? value
       : null;
+  }
+
+  private parseIsoDate(value: string | null): string | null {
+    return value !== null && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
   }
 }

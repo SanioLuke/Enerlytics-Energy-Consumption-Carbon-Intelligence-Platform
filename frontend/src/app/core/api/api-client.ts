@@ -36,6 +36,9 @@ export class ApiClient {
    * /v1/organizations/{orgId}/...
    */
   orgPath(orgId: string, path: string): string {
+    if (path === '') {
+      return `/v1/organizations/${orgId}`;
+    }
     return `/v1/organizations/${orgId}${path.startsWith('/') ? path : '/' + path}`;
   }
 

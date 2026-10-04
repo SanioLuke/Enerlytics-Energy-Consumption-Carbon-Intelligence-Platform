@@ -2,10 +2,61 @@
 
 ## Current Phase
 
-Phase 18 — Angular application foundation implemented per `docs/UX_SPEC.md`.
-Business pages are not yet implemented; the shell, design system, security
-plumbing, and state components are in place and verified by lint, unit tests,
-and a production build.
+Phase 19 — Executive Overview dashboard implemented against the real backend
+analytics, carbon, billing, facilities, and alert APIs on the Phase 18
+foundation. The page is wired to a cohesive dashboard query model (no
+per-component fetching), renders the seven required KPI tiles and the §4.2
+visualizations with Apache ECharts, and is verified by lint, 43 unit tests,
+and a production build. Remaining business pages still render the shared
+placeholder.
+
+The dashboard delivers:
+
+- **Cohesive query/state model** — `DashboardDataService` resolves one
+  `DashboardQuery` from the global context (organization, site scope, period,
+  custom range, prior-period comparison) and issues the whole request batch
+  inside a single `switchMap` (`forkJoin` per section): energy aggregates,
+  carbon trend, cost buckets, current intensity, alert lists, sites, and the
+  bounded per-site energy fan-out for the comparison chart. Filter changes
+  and refresh cancel stale in-flight work; state is a signal via `toSignal`,
+  so there are no manual subscriptions to leak. Sections are error-isolated
+  — a failed carbon call degrades that card, not the page.
+- **KPI tiles** — Current Demand (kW, latest hourly average with peak meta),
+  Today's Consumption (kWh with completeness marks), Today's Cost (currency
+  resolved from the cost bucket or site), Today's Carbon (tCO₂e), Current
+  Grid Carbon Intensity (gCO₂e/kWh with zone + estimated marks), Renewable
+  Energy (honest `N/A` — no backend source exists yet), and Active Alerts
+  (open + acknowledged count). Comparison mode shows deltas versus the same
+  elapsed window yesterday.
+- **Charts** — Apache ECharts (tree-shaken `echarts/core`, dynamically
+  imported into the lazy overview chunk): consumption-over-time line with
+  optional dashed prior-period overlay, today hourly demand curve
+  (average + peak), energy-by-site horizontal bars (org scope only), carbon
+  emissions trend, cost trend, plus a recent-alerts severity feed and a
+  sustainability-target card that renders an explicit "not yet modeled"
+  empty state instead of a fabricated value. Axes and tooltips carry
+  explicit units; `aria` descriptions are enabled; buckets with no data
+  render as gaps, never zero.
+- **Filter bar** — organization, site, period presets (today / yesterday /
+  last 7 / last 30 days), custom date range, previous-period comparison
+  toggle, manual refresh, and the required `Last updated HH:MM:SS UTC`
+  indicator. State persists through `ContextService` into URL query params
+  (shareable) with localStorage fallback; custom range extends `ContextService`
+  with `from`/`to` params.
+- **States and a11y** — skeleton loading, per-card API error states with
+  retry, empty states for missing data, 7→4→scroll responsive KPI strip,
+  12-column chart grid collapsing to single column, labelled controls,
+  `role="img"` charts with aria labels, and a 60-second auto-refresh
+  bounded by `takeUntilDestroyed`.
+- **Contracts fix** — `ApiClient.orgPath(orgId, '')` no longer emits a
+  trailing slash (previously produced `//sites`-style URLs that Spring
+  would not normalize).
+
+### Phase 18 — Angular application foundation (prior phase)
+
+Phase 18 implemented the Angular application foundation per `docs/UX_SPEC.md` —
+shell, design system, security plumbing, and state components — verified by
+lint, unit tests, and a production build.
 
 The foundation delivers:
 
@@ -58,32 +109,6 @@ The foundation delivers:
 Phase 17 produced `docs/UX_SPEC.md` — the information architecture, design
 system, and wireframe-level executive dashboard specification the Angular
 foundation now implements.
-
-`docs/UX_SPEC.md` defines the full product design: a dense, analytical
-workspace aesthetic (flat surfaces, hairline borders, single teal accent,
-≤8px radii, no decorative gradients), a 12-item primary navigation grouped
-into Monitor / Analyze / Manage / Govern sections, a global context model
-(org → scope → period/granularity with site-timezone display), and a reusable
-design system covering color tokens, typography, spacing, grid, cards, KPI
-tiles, buttons, forms, tables, chips, charts vocabulary, status/severity/
-data-quality indicators, and state patterns (empty/loading/error/stale).
-
-Sixteen screens are specified end-to-end — login, executive overview, energy
-dashboard, carbon dashboard, cost dashboard, live monitoring, site details,
-building details, meter details, meter explorer, alerts center, forecasts,
-reports, sustainability targets, organization settings, and user management —
-each with user objective, layout, KPIs, charts, tables, filters,
-interactions, drill-down, and empty/loading/error/responsive behavior.
-Data-quality marks (VALID/ESTIMATED/MISSING/LATE/PARTIAL/UNAVAILABLE) are
-first-class: missing values are never rendered as zero or interpolated.
-
-The executive overview (§4.2) is specified to wireframe detail: ASCII
-wireframes for desktop/tablet/mobile, the seven required KPI tiles (current
-demand, today's consumption/cost/carbon, grid intensity, renewable %,
-active alerts), ten required visualizations, the org/site/building/
-period/comparison filter contract with URL persistence, and the interaction
-contract (tooltips, brush zoom, click-to-drill, auto-refresh cadence,
-explicit last-updated indicators, mandatory unit labels).
 
 `docs/UX_SPEC.md` defines the full product design: a dense, analytical
 workspace aesthetic (flat surfaces, hairline borders, single teal accent,
@@ -419,6 +444,25 @@ and `ESTIMATED` quality; realized carbon intensity is always energy-weighted
 - `docs/EXTERNAL_INTEGRATIONS.md`
 - `docs/PROJECT_STATE.md`
 
+### Phase 19
+
+- `frontend/src/app/features/overview/dashboard.models.ts`
+- `frontend/src/app/features/overview/dashboard-data.service.ts`
+- `frontend/src/app/features/overview/dashboard-filter-bar.component.ts`
+- `frontend/src/app/features/overview/kpi-tile.component.ts`
+- `frontend/src/app/features/overview/chart-card.component.ts`
+- `frontend/src/app/features/overview/chart-options.ts`
+- `frontend/src/app/features/overview/overview.component.ts`
+- `frontend/src/app/features/overview/dashboard-data.service.spec.ts`
+- `frontend/src/app/features/overview/chart-options.spec.ts`
+- `frontend/src/app/core/charts/echart.component.ts`
+- `frontend/src/app/core/charts/chart-theme.ts`
+- `frontend/src/app/core/api/api-client.ts` (empty-path `orgPath` fix)
+- `frontend/src/app/core/context/context.service.ts` (CUSTOM period, from/to params)
+- `frontend/src/app/core/api/contracts.ts` (sites page, carbon, cost, alert DTOs)
+- `frontend/package.json` (echarts 6.1.0)
+- `docs/PROJECT_STATE.md`
+
 ### Phase 18
 
 - `frontend/src/styles/_tokens.scss`
@@ -636,14 +680,14 @@ npm run build
 Results:
 
 - ESLint (`angular-eslint` + `typescript-eslint` flat config): clean, 0 errors
-- Vitest: 6 spec files, 25 tests passed, 0 failures
+- Vitest: 8 spec files, 43 tests passed, 0 failures
   - `api-error.spec.ts` (4), `context.service.spec.ts` (6),
     `auth.service.spec.ts` (6), `auth.interceptor.spec.ts` (4),
-    `has-authority.directive.spec.ts` (3), `app.spec.ts` (2)
-- Production build: `ng build` succeeded; lazy chunks emitted per feature
-  (login, overview, placeholders); initial bundle 534 kB raw / 130 kB
-  estimated transfer (Angular Material + animations), budget raised to 600 kB
-  warning / 1 MB error
+    `has-authority.directive.spec.ts` (3), `app.spec.ts` (2),
+    `dashboard-data.service.spec.ts` (11), `chart-options.spec.ts` (7)
+- Production build: `ng build` succeeded; ECharts stays in lazy chunks
+  (~560 kB across `charts`/`components`/`renderers` loaded only with the
+  overview route); initial bundle 548 kB raw / 134 kB estimated transfer
 - The host's system Node (24.6) is below Angular 22's minimum; builds used the
   portable Node 24.21.0 toolchain under `.runtime/`
 
@@ -807,16 +851,34 @@ Results:
   a BFF pattern is a production-hardening decision.
 - `ContextService.initFromRoute` reads the root ActivatedRoute snapshot once at
   shell init; deep-linking into nested param-driven routes is future work.
-- The global filter bar (org/site/building pickers, date-range and comparison
-  controls) is modeled by `ContextService` but its UI is not yet built — it
-  arrives with the executive dashboard implementation.
-- Overview renders the §4.2 grid with placeholder KPI tiles; no charting
-  library is wired yet (chart palette tokens are ready).
 - `contracts.ts` is hand-maintained from `contracts/openapi/*.yaml`; generating
   types from the published OpenAPI schema is future work.
 - The host's system Node (24.6) does not satisfy Angular 22's engine
   requirement (≥24.15); the portable `.runtime/node` toolchain is required
   for lint/test/build on this machine.
+
+### Executive Dashboard
+
+- No backend endpoint exists for renewable-source percentage or
+  sustainability targets, so the Renewable tile renders `N/A` and the
+  target card renders an explicit "not yet modeled" empty state — no
+  fabricated values. Both are wired to light up once the APIs exist.
+- "Energy by Site" batches one bounded (≤12 sites) DAY-bucketed energy query
+  per active site because there is no org-level per-site breakdown endpoint;
+  a dedicated backend endpoint would remove the fan-out.
+- KPI deltas under "previous period" comparison use the same elapsed window
+  yesterday for the Today tiles and an equal-length prior range for charts;
+  a same-period-last-year mode is available in `ContextService` but not yet
+  offered in the filter bar.
+- Browser-level visual verification used a contract-shaped mock API
+  (`.runtime/mock-api.js`, gitignored) because this host has no Docker,
+  PostgreSQL, or Kafka for the real backend; end-to-end verification against
+  a live backend remains a release-gate task.
+- Building-level filtering is modeled in `ContextService` but not yet
+  exposed in the dashboard filter bar (no building list endpoint consumed).
+- Click-to-drill from chart segments and brush-zoom-to-range promotion from
+  UX_SPEC §4.2 are specified but not yet implemented; tiles currently
+  link through to their domain surfaces.
 
 ### Local Tooling
 
@@ -842,10 +904,13 @@ Results:
 
 ## Next Recommended Task
 
-1. Build the executive overview dashboard on the Phase 18 foundation: global
-   filter bar, KPI strip, and the ten §4.2 visualizations wired to the
-   analytics/carbon/billing/alert APIs (a charting library decision is needed).
-2. Add notification delivery channels (email, SMS, webhook, in-app) consuming alert outbox events.
-3. Wire incremental anomaly/emission/cost recalculation to `EnergyAggregationUpdated` events or scheduled jobs.
-4. Extract a shared test fixture helper for users, organizations, roles, and tokens.
-5. Add CI pipelines that build and test `backend`, `backend/telemetry-simulator`, and `frontend`.
+1. Build the remaining §4.2 dashboard interactions: click-to-drill from chart
+   segments into domain pages with filters preserved, and brush-zoom →
+   "Apply as range" promotion on the consumption chart.
+2. Implement the next business surface on the dashboard's proven patterns —
+   the Live Energy monitoring page (SSE) or the Alerts center.
+3. Backend: add renewable-source and sustainability-target endpoints so the
+   two dashboard panels can render real values.
+4. Add notification delivery channels (email, SMS, webhook, in-app) consuming alert outbox events.
+5. Wire incremental anomaly/emission/cost recalculation to `EnergyAggregationUpdated` events or scheduled jobs.
+6. Add CI pipelines that build and test `backend`, `backend/telemetry-simulator`, and `frontend`.
