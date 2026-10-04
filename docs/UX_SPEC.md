@@ -387,36 +387,304 @@ state · responsive behavior.
 
 ### 4.2 Executive overview (Overview)
 
-- **User objective:** "Is the portfolio healthy right now, and where do I need
-  to look?" — a 30-second situational read.
-- **Layout:** context bar → KPI strip (6 tiles) → 12-col grid:
-  consumption trend card (8) + alerts-at-a-glance (4); second row: carbon
-  summary (4) + cost summary (4) + forecast glance (4); bottom: top-sites table
-  (8) + live status feed (4).
-- **Key KPIs:** today consumption kWh (+Δ% vs baseline), month-to-date cost,
-  today emissions tCO₂e, current demand kW (+Δ vs typical peak), open critical
-  alerts (count, accent-linked), meters online %.
-- **Charts:** 24h consumption area vs baseline band; 7-day consumption trend
-  with anomaly markers; emissions trend mini; cost MTD bar; 7-day forecast
-  line with interval band (mini).
-- **Tables:** top 5 sites by today kWh (kWh, share %, Δ, status); recent alert
-  feed (severity chip, title, entity, age).
-- **Filters:** org/site scope via context bar; period presets where relevant.
-- **Interactions:** every KPI tile deep-links (kWh→Analytics, cost→Costs,
-  CO₂→Carbon, alerts→Alerts, meters→Meters); alert feed rows open the alert
-  drawer; refresh affordance with `updated Xs ago`.
-- **Drill-down:** site row → site details; chart point → corresponding
-  Analytics view at that bucket.
-- **Empty:** first-run onboarding panel — ordered setup checklist
-  (Create site → Register meter → Configure tariff → Start telemetry) with
-  direct CTAs. Partial data (e.g. no tariff) renders affected tiles as
-  `UNAVAILABLE`, not zero.
-- **Loading:** KPI + chart + table skeletons in real layout.
-- **Error:** per-region failure cards with retry; org-level outage banner when
-  analytics endpoints fail.
-- **Responsive:** KPI strip 6→3→2 columns; grid stacks to single column in
-  defined order (trend → alerts → sites → carbon/cost/forecast); tables keep
-  horizontal scroll rather than reflow into misleading cards.
+The flagship surface. This section is the refined, implementation-ready spec:
+full layout wireframes, the required KPI set, all ten visualizations, the
+filter contract, and the interaction contract.
+
+**User objective:** "Is the portfolio healthy right now, and where do I need
+to look?" — a 30-second situational read that routes the user to the right
+deep surface with context already applied.
+
+#### 4.2.1 Desktop wireframe (≥1440px)
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ▸ Enerlytics                                                     Org: Enerlytics Org ▾   JD ▾│
+├──────┬───────────────────────────────────────────────────────────────────────────────────────┤
+│ MON  │ Overview › Enerlytics Org                                                              │
+│ ◉ Over│ ┌─ Filters ─────────────────────────────────────────────────────────────────────────┐│
+│  Live│ │ Org: Enerlytics Org ▾ │ Site: All sites ▾ │ Building: All ▾ │                     ││
+│ ▤ Alerts│ │ Period: Today ▾  [custom: 2026-02-04 00:00 → 23:59 IST] │ Compare: Baseline ▾   ││
+│      │ └──────────────────────────────────────────────────────────────────────────────────────┘│
+│ ANA  │ Auto-refresh ● ON 30s ▾   Last updated 14:32:07 IST (2s ago)   ⟳ Refresh   ⏸ Pause    │
+│  Anly│ ╔══════════╦══════════╦══════════╦══════════╦══════════╦══════════╦══════════╗           │
+│  Carb│ ║CURRENT   ║TODAY'S   ║TODAY'S   ║TODAY'S   ║GRID CO₂  ║RENEWABLE ║ ACTIVE   ║           │
+│  Cost│ ║DEMAND    ║CONSUMPT. ║ENERGY    ║CARBON    ║INTENSITY ║ ENERGY   ║ ALERTS   ║           │
+│  Fcst│ ║          ║          ║COST      ║EMISSIONS ║          ║          ║          ║           │
+│      │ ║ 412.3 kW ║12,480    ║$1,872.40 ║5.8       ║ 318      ║  34.2%   ║ ▮3 ▮7 ▮12║           │
+│ MNG  │ ║          ║   kWh    ║          ║  tCO₂e   ║gCO₂e/kWh ║          ║          ║           │
+│  Fac.│ ║▲4.2% vs  ║▼2.1% vs  ║▲5.4% vs  ║▼1.8% vs  ║▼12% vs   ║▲1.4pt vs ║1 critical║           │
+│  Mtrs│ ║typical   ║baseline  ║baseline  ║baseline  ║yesterday ║ last mo. ║2 warning ║           │
+│      │ ║live·2s   ║agg·2m    ║EST ·partial║agg·2m   ║EST EM    ║MTD       ║live·3s   ║           │
+│ GOV  │ ╚══════════╩══════════╩══════════╩══════════╩══════════╩══════════╩══════════╝           │
+│  Rep │ ┌──────────────────────────────────────────┐┌─────────────────────────┐                │
+│  Sus │ │ CONSUMPTION OVER TIME              kWh ⟳ ││ CURRENT CARBON          │                │
+│  Adm │ │ actual ──  baseline ┄┄  prior ··  ●anom ││ INTENSITY               │                │
+│      │ │ kWh▲               ╭─╮                   ││      318                │                │
+│      │ │ 900│         ╭─────╯  ╰──●                ││   gCO₂e/kWh  [EST]      │                │
+│      │ │ 600│   ╭─────╯        ╰──╯                ││   ▂▃▅▃▂▄▅ last 6h       │                │
+│      │ │ 300│───╯               gap=missing        ││   ▼12% vs yesterday     │                │
+│      │ │   0└──┬───┬───┬───┬───┬───┬───►  hour     ││   src: ElectricityMaps  │                │
+│      │ │      00  04  08  12  16  20  24          ││   zone DE · upd 14:30   │                │
+│      │ │ zoom brush [████████████]  reset ⟲       ││   → Carbon dashboard    │                │
+│      │ └──────────────────────────────────────────┘└─────────────────────────┘                │
+│      │ ┌──────────────────────────────────────────┐┌─────────────────────────┐                │
+│      │ │ DEMAND CURVE                       kW  ⟳ ││ PEAK DEMAND PERIODS     │                │
+│      │ │ kW▲        TOU peak window ▒▒▒▒▒▒        ││ today · top 5 intervals │                │
+│      │ │ 500│    ╭──╮    ▒▒▒▒╭───╮▒▒▒▒            ││ 1. 14:00–15:00  468 kW ●│                │
+│      │ │ 300│ ╭──╯  ╰──▒▒▒▒▒│   │▒▒▒▒             ││ 2. 09:00–10:00  451 kW ●│                │
+│      │ │ 100│─╯       ▒▒▒▒▒╰───╯▒▒▒▒ thr 500 ┄┄   ││ 3. 16:00–17:00  437 kW ●│                │
+│      │ │   0└──┬───┬───┬───┬───┬───┬───►          ││ 4. 11:00–12:00  402 kW  │                │
+│      │ │      00  04  08  12  16  20  24          ││ 5. 08:00–09:00  398 kW  │                │
+│      │ └──────────────────────────────────────────┘│ peak ▲8.4% vs typical   │                │
+│      │                                              │ → Demand analytics    │                │
+│      │                                              └─────────────────────────┘                │
+│      │ ┌─────────────────────────┐┌──────────────────────────┐                                 │
+│      │ │ SITE COMPARISON    kWh  ││ ENERGY BY FACILITY       │                                 │
+│      │ │ today · horizontal bars ││ today · share of total   │                                 │
+│      │ │ Site A ██████████ 5,210 ││    ╭───────────╮         │                                 │
+│      │ │ Site B ████████ 4,020   ││ A 41.7% ██████ │ C 19.9% │                                 │
+│      │ │ Site C █████ 2,480      ││    │  B 32.2%  │ D 6.2%  │                                 │
+│      │ │ Site D ██ 1,310    EST  ││    ╰───────────╯         │                                 │
+│      │ │ → click bar: site page  ││ → click slice: facility  │                                 │
+│      │ └─────────────────────────┘└──────────────────────────┘                                 │
+│      │ ┌─────────────────────────┐┌──────────────────────────┐                                 │
+│      │ │ CARBON TREND      tCO₂e ││ COST TREND          USD  │                                 │
+│      │ │ last 7 days · daily     ││ last 7 days · daily      │                                 │
+│      │ │  t▲    ╭╮      ╭─       ││  $▲        ╭──╮    ╭─    │                                 │
+│      │ │  8│ ╭──╯╰───╮─╯         ││ 2k│   ╭────╯  ╰────╯     │                                 │
+│      │ │  4│─╯       ╰─          ││ 1k│───╯                 │                                 │
+│      │ │   └──┬──┬──┬──┬──┬──┬──► ││   └──┬──┬──┬──┬──┬──┬──► │                                 │
+│      │ │     J29 30 31 F1  2  3 4││     J29 30 31 F1  2  3 4 │                                 │
+│      │ └─────────────────────────┘└──────────────────────────┘                                 │
+│      │ ┌──────────────────────────────────────────┐┌─────────────────────────┐                │
+│      │ │ RECENT ALERTS              open: 12  →   ││ TARGET PROGRESS         │                │
+│      │ │ ▮CRIT 14:02 High consumption            ││ 2030 CO₂e: −40%         │                │
+│      │ │   Site B › Meter M-14 · 412kW>350kW     ││ ██████████░░░░ 61%      │                │
+│      │ │ ▮WARN 13:48 Meter offline               ││ actual ── target ┄┄     │                │
+│      │ │   Site D › M-07 · last seen 41m         ││ ON TRACK · next         │                │
+│      │ │ ▮WARN 12:20 High demand · Site A › B-02 ││ milestone Q3: −12%      │                │
+│      │ │ ▮INFO 11:05 Anomaly resolved · M-19     ││ → Sustainability        │                │
+│      │ └──────────────────────────────────────────┘└─────────────────────────┘                │
+└──────┴───────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 4.2.2 Tablet wireframe (768–1023px)
+
+Nav rail collapses to 64px icons; filters collapse into one
+`Filters (3 active)` button opening a bottom sheet; KPI strip scrolls
+horizontally as snap cards; grid becomes single column in the defined order
+(1→10 below).
+
+```
+┌────────────────────────────────────────────────────────┐
+│ ≡ │ Overview      Org ▾   [Filters (3)]   ⟳ ⏸   JD ▾   │
+├────┴───────────────────────────────────────────────────┤
+│ Auto-refresh ON 30s · updated 14:32:07 (2s ago)        │
+│ ◄ [CURRENT DEMAND][TODAY kWh][COST][CO₂e][INTENSITY]►  │
+│   (snap-scroll tile strip, all 7 tiles)                │
+│ ┌──────────────────────────────────────────────────────┐
+│ │ CONSUMPTION OVER TIME                    kWh       ⟳ │
+│ │ (full-width chart, condensed legend row)             │
+│ └──────────────────────────────────────────────────────┘
+│ ┌──────────────────────────────────────────────────────┐
+│ │ DEMAND CURVE                             kW        ⟳ │
+│ └──────────────────────────────────────────────────────┘
+│ ┌──────────────────────────┐┌──────────────────────────┐
+│ │ SITE COMPARISON          ││ ENERGY BY FACILITY       │
+│ └──────────────────────────┘└──────────────────────────┘
+│ ┌──────────────────────────┐┌──────────────────────────┐
+│ │ CARBON TREND             ││ COST TREND               │
+│ └──────────────────────────┘└──────────────────────────┘
+│ ┌──────────────────────────┐┌──────────────────────────┐
+│ │ PEAK DEMAND PERIODS      ││ TARGET PROGRESS          │
+│ └──────────────────────────┘└──────────────────────────┘
+│ ┌──────────────────────────┐┌──────────────────────────┐
+│ │ RECENT ALERTS            ││ CARBON INTENSITY         │
+│ └──────────────────────────┘└──────────────────────────┘
+└────────────────────────────────────────────────────────┘
+```
+
+#### 4.2.3 Mobile wireframe (<768px)
+
+Rail becomes a bottom nav (Monitor group only: Overview · Live · Alerts ·
+More). Filters open as a full-screen sheet. Single column, KPI strip
+scrolls horizontally; each card full-width; charts use condensed axes
+(hourly ticks every 6h) and the same data — never sampled down silently.
+
+```
+┌──────────────────────────────┐
+│ ≡ Overview        JD ▾       │
+│ [Filters (3)]  ⟳ ⏸           │
+│ updated 14:32:07 · 2s ago    │
+│ ◄[DEMAND][kWh][COST][CO₂e]►  │
+│ ┌──────────────────────────┐ │
+│ │ CONSUMPTION OVER TIME    │ │
+│ └──────────────────────────┘ │
+│ ┌──────────────────────────┐ │
+│ │ DEMAND CURVE             │ │
+│ └──────────────────────────┘ │
+│ ┌──────────────────────────┐ │
+│ │ SITE COMPARISON          │ │
+│ └──────────────────────────┘ │
+│ …(remaining cards in order)… │
+├──────────────────────────────┤
+│ ◉Overv │ Live │ ▤Alerts │ ⋯ │
+└──────────────────────────────┘
+```
+
+#### 4.2.4 Required KPI strip (7 tiles, fixed order)
+
+Each tile: caption label → value + explicit unit → delta line vs the
+selected comparison → freshness/quality line. Clicking a tile deep-links
+with the current filters preserved.
+
+| # | Tile | Value + unit | Delta line | Freshness | Quality chips | Click → |
+|---|---|---|---|---|---|---|
+| 1 | Current Demand | `kW`, 1 decimal | `▲/▼ %` vs typical peak for this hour | live, ≤30s | `STALE` if >120s | Analytics (demand) |
+| 2 | Today's Consumption | `kWh`, grouped digits | `▲/▼ %` vs comparison | ≤5m | `PARTIAL n%` if coverage <100 | Analytics |
+| 3 | Today's Energy Cost | site currency + 2dp | `▲/▼ %` vs comparison | ≤5m | `EST`, `UNAVAILABLE` (no tariff) | Costs |
+| 4 | Today's Carbon Emissions | `tCO₂e`, 2dp | `▲/▼ %` vs comparison | ≤5m | `EST`, `UNAVAILABLE` (no factor) | Carbon |
+| 5 | Current Grid Intensity | `gCO₂e/kWh`, int | `▲/▼` vs same time yesterday | provider ts | `EST` (estimated obs), `STALE` (>24h) | Carbon |
+| 6 | Renewable Energy % | `%`, 1dp | `pt` change vs last month | MTD calc | coverage note | Sustainability |
+| 7 | Active Alerts | counts `crit/warn/info` | — | live, ≤30s | severity split dots | Alerts |
+
+Rules: deltas are signed and colored (`▲` = worse for consumption/cost/
+emissions/demand, `▲` = better for renewable %); when the comparison basis
+is `NONE`, the delta line shows the absolute period subtotal instead;
+units are always printed — a bare `412.3` is never acceptable.
+
+#### 4.2.5 Required visualizations (10 cards, fixed order)
+
+All charts follow §3.6. Every card header carries: title · current unit ·
+per-card `⟳ updated HH:MM:SS` · overflow menu (export CSV, view as table,
+open in domain surface).
+
+1. **Consumption over time** — line/area, hourly (daily for range >14d).
+   Series: actual (teal), baseline band + dashed line, prior period
+   (slate dashed, when compare=prior). Anomaly markers, gaps for missing
+   intervals. Tooltip: bucket time (site tz + UTC), each series with
+   `kWh`, deviation %, coverage chip. Zoom: brush + wheel, resets via ⟲.
+   Click point → Analytics at that bucket+scope.
+2. **Demand curve** — line, `kW` y-axis. TOU peak windows shaded
+   `bg-subtle` behind series when a tariff exists (legend note);
+   threshold reference line when configured. Tooltip: `kW`, `kWh` for
+   that hour, TOU window name. Zoom: same brush contract. Click →
+   demand view in Analytics.
+3. **Site consumption comparison** — horizontal bars, `kWh` for the
+   period, sorted desc, value labels at bar end, coverage/EST chips on
+   partial sites. Click bar → Site details.
+4. **Carbon emissions trend** — line, period granularity, `tCO₂e`
+   (unit switcher g/kg/t kept consistent with the tile). Compare
+   overlay when selected. Click point → Carbon dashboard period.
+5. **Cost trend** — line or stacked bar (energy vs demand components),
+   currency code in axis + tooltip (`USD`, never bare `$`). Compare
+   overlay. Click → Costs dashboard. `UNAVAILABLE` state if no tariff.
+6. **Energy by facility** — donut if ≤5 facilities else horizontal bar.
+   Slice = share of period kWh with % label + kWh in tooltip. Click
+   slice → facility-scoped Analytics.
+7. **Peak demand period** — ranked list chart (top 5 intervals):
+   interval window, `kW` bar, marker for all-time-vs-typical.
+   Click row → demand analytics scoped to that window.
+8. **Current carbon intensity indicator** — big-number card:
+   `gCO₂e/kWh`, 6h sparkline, vs-yesterday delta, provider name + zone
+   + fetched time + `EST`/`STALE` chips. Click → Carbon dashboard.
+9. **Sustainability target progress** — progress bar + mini trajectory
+   (actual solid vs target-path dashed), on-track/off-track chip with
+   rule tooltip, next milestone line. Click → Sustainability.
+10. **Recent alerts** — list, newest first: severity border+chip, time,
+    rule name, entity path, observed vs threshold with units. Click →
+    alert drawer (in Alerts). Header shows open count → Alerts center.
+
+#### 4.2.6 Filters
+
+| Filter | Control | Depends on | URL param | Persist |
+|---|---|---|---|---|
+| Organization | context-bar org switcher (multi-org only) | — | `org` path | session |
+| Site | single/multi select, "All sites" default | org | `site=id1,id2` | yes |
+| Building | select, disabled until site chosen | site | `building=id` | yes |
+| Date range | presets Today/Yesterday/24h/7d/MTD/30d + custom picker | — | `from`,`to` (ISO) | yes |
+| Comparison | Baseline / Prior period / Same period last year / None | — | `compare=` | yes |
+
+- Dependency rule: changing a parent filter clears dependent children
+  (new site ⇒ building resets to "All").
+- Persistence: filters serialize into query params on every change —
+  refresh, share, and back/forward navigation restore the exact view
+  ("URL-shareable where practical"). `localStorage` holds per-user
+  last-used filters when the URL has none.
+- The filter bar always shows the resolved state — an applied deep link
+  displays the same chips it would if set manually. A `Reset` clears to
+  defaults (All sites · Today · Baseline).
+
+#### 4.2.7 Interaction contract
+
+- **Tooltips:** unified hover tooltip — bucket timestamp (site tz with
+  UTC in parentheses), every visible series with its unit, delta vs
+  comparison, coverage/quality flags. Focusable on keyboard via the
+  chart's "View as table".
+- **Zoom:** brush-drag and wheel zoom on all time-series cards; zoom is
+  local until `Apply as range` promotes it to the global period filter;
+  ⟲ resets.
+- **Click-to-drill:** chart segments/points/bars deep-link per §4.2.5;
+  the destination opens with scope+period already applied.
+- **Date picker:** custom range = two date-time fields + quick presets;
+  validates `from < to`, max 366 days, and site-local vs UTC mode is
+  labeled inside the picker.
+- **Auto-refresh:** live tiles (Current Demand, Active Alerts, Recent
+  alerts) poll at 30s; aggregate cards at 5m; all pause when the tab is
+  hidden (`document.visibilityState`) and on `⏸ Pause`; resume shows
+  `catching up…` once then normal cadence. `Auto-refresh ● ON/OFF`
+  state and interval (30s/1m/5m) are user-selectable.
+- **Last updated:** every card header shows `updated HH:MM:SS` (site
+  tz); the page header shows global `Last updated …(relative)`; stale
+  streams get `STALE` chips instead of silently freezing.
+- **Units:** every number carries its unit — axis label, tile suffix,
+  tooltip suffix, table column header. Currency shows ISO code.
+
+#### 4.2.8 Drill-down map
+
+```mermaid
+flowchart LR
+    OV[Executive overview]
+    OV -->|demand tile / demand point| AN[Analytics]
+    OV -->|consumption point / kWh tile| AN
+    OV -->|site bar / facility slice| SITE[Site details]
+    OV -->|cost tile / cost point| COST[Costs]
+    OV -->|carbon tile / intensity / CO2e point| CARB[Carbon]
+    OV -->|alert tile / alert row| AL[Alerts drawer]
+    OV -->|peak interval| AN
+    OV -->|target card| SUS[Sustainability]
+    SITE -->|building| BLD[Building details]
+    SITE -->|meter| MTR[Meter details]
+```
+
+#### 4.2.9 States
+
+- **Empty:** first-run onboarding — ordered checklist (Create site →
+  Register meter → Configure tariff → Start telemetry) with CTAs; a
+  filter-empty state ("No data for this selection") offers `Reset
+  filters`. Missing capabilities degrade per-tile: no tariff ⇒ cost tile
+  shows `UNAVAILABLE` + "assign a tariff" link — never `0`.
+- **Loading:** real-layout skeletons (7-tile strip + 10 cards) on first
+  load; refresh cycles update in place — no flicker, values transition
+  without re-rendering the whole card.
+- **Error:** per-card failure with `detail` + `correlationId` + retry;
+  a failed tile shows its last good value dimmed + `STALE` chip when
+  cache permits; page-level outage banner only when the analytics base
+  endpoint is unreachable.
+- **Stale/partial:** `STALE` on breached freshness, `EST`/`PARTIAL n%`
+  chips on affected tiles and cards, `NO DATA` gaps in series.
+
+#### 4.2.10 Responsive behavior
+
+- ≥1440: full layout as §4.2.1.
+- 1024–1439: KPI strip wraps 4+3; two-column rows per §4.2.1 pairs stay
+  paired.
+- 768–1023: icon rail; filter sheet; KPI strip horizontal snap-scroll;
+  cards stack in defined order (§4.2.2).
+- <768: bottom nav; full-screen filter sheet; single column; condensed
+  axes; data never silently downsampled (chart tooltip still resolves
+  hourly values).
 
 ### 4.3 Energy dashboard (Analytics)
 
