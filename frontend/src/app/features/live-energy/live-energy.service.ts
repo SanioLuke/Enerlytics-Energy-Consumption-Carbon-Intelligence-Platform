@@ -5,6 +5,8 @@ import { catchError, sampleTime, startWith, switchMap } from 'rxjs/operators';
 import type { LiveEnergySnapshot } from '../../core/api/contracts';
 import { ApiClient } from '../../core/api/api-client';
 import { AuthService } from '../../core/auth/auth.service';
+import { TokenStorage } from '../../core/auth/token-storage';
+import { environment } from '../../../environments/environment';
 
 export interface LiveEnergyConfig {
   maxAttempts: number;
@@ -59,6 +61,7 @@ export interface LiveEnergyState {
 export class LiveEnergyService {
   private readonly api = inject(ApiClient);
   private readonly auth = inject(AuthService);
+  private readonly tokenStorage = inject(TokenStorage);
 
   private eventSource: EventSource | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -261,7 +264,10 @@ export class LiveEnergyService {
     const params = new URLSearchParams();
     if (scope.siteId) params.set('siteId', scope.siteId);
     if (scope.buildingId) params.set('buildingId', scope.buildingId);
+    const token = this.tokenStorage.accessToken();
+    if (token) params.set('access_token', token);
     const query = params.toString();
-    return `${this.api.orgPath(orgId, '/live/energy/subscribe')}${query ? '?' + query : ''}`;
+    const path = this.api.orgPath(orgId, '/live/energy/subscribe');
+    return `${environment.apiBaseUrl}${path}${query ? '?' + query : ''}`;
   }
 }

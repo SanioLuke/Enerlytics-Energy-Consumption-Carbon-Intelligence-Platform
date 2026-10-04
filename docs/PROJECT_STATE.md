@@ -24,7 +24,10 @@ The live monitoring layer delivers:
 - **Tenant-scoped SSE contract** — `GET
   /api/v1/organizations/{orgId}/live/energy/subscribe` streams `snapshot` events;
   `GET .../snapshot` is a REST fallback. Filters are optional `siteId` and
-  `buildingId` query params. The DTO includes `currentDemandKw`,
+  `buildingId` query params. Because browsers cannot set headers on
+  `EventSource`, the stream passes the JWT access token as an `access_token`
+  query parameter, which `JwtAuthenticationFilter` resolves alongside the
+  standard `Authorization` header. The DTO includes `currentDemandKw`,
   `activeMeterCount`, `offlineMeterCount`, `meterReadings`, and `recentTrend`
   with no internal Kafka topic or raw telemetry field exposed.
 - **Offline detection** — meters move to offline when no validated reading has
@@ -496,6 +499,7 @@ and `ESTIMATED` quality; realized carbon intensity is always energy-weighted
 
 - `backend/src/main/java/com/enerlytics/telemetry/api/event/MeterReadingValidatedEvent.java` (added `buildingId`)
 - `backend/src/main/java/com/enerlytics/telemetry/application/TelemetryIngestionService.java` (publishes `MeterReadingValidatedEvent` to application listener channel)
+- `backend/src/main/java/com/enerlytics/security/jwt/JwtAuthenticationFilter.java` (accepts `access_token` query parameter for SSE)
 - `backend/src/main/java/com/enerlytics/live/energy/api/LiveEnergyController.java`
 - `backend/src/main/java/com/enerlytics/live/energy/api/LiveEnergySnapshot.java`
 - `backend/src/main/java/com/enerlytics/live/energy/api/MeterLiveReading.java`

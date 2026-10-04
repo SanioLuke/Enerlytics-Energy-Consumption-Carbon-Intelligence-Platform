@@ -124,7 +124,7 @@ describe('LiveEnergyService', () => {
 
     expect(service.state().status).toBe('connected');
     expect(MockEventSource.last?.url).toContain(
-      '/v1/organizations/org-1/live/energy/subscribe',
+      'http://localhost:8080/api/v1/organizations/org-1/live/energy/subscribe',
     );
   });
 
