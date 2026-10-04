@@ -18,18 +18,19 @@ if (!fs.existsSync(targetDir)) {
   fs.mkdirSync(targetDir, { recursive: true });
 }
 
-const isProduction = process.env['NODE_ENV'] === 'production';
-const fileName = isProduction ? 'environment.production.ts' : 'environment.ts';
-
 const apiBaseUrl = requireEnv('ENERLYTICS_API_BASE_URL', 'http://localhost:8080/api');
 const appName = requireEnv('ENERLYTICS_APP_NAME', 'Enerlytics');
 
-const content = `export const environment = {
-  production: ${isProduction},
+// Both files are always regenerated so `ng build` (fileReplacements →
+// environment.production.ts) and `ng serve` (environment.ts) stay in sync
+// regardless of NODE_ENV.
+const render = (production) => `export const environment = {
+  production: ${production},
   apiBaseUrl: '${apiBaseUrl}',
   appName: '${appName}'
 };
 `;
 
-fs.writeFileSync(path.join(targetDir, fileName), content, { encoding: 'utf8' });
-console.log(`Wrote ${fileName} with apiBaseUrl=${apiBaseUrl}`);
+fs.writeFileSync(path.join(targetDir, 'environment.ts'), render(false), { encoding: 'utf8' });
+fs.writeFileSync(path.join(targetDir, 'environment.production.ts'), render(true), { encoding: 'utf8' });
+console.log(`Wrote environment.ts and environment.production.ts with apiBaseUrl=${apiBaseUrl}`);

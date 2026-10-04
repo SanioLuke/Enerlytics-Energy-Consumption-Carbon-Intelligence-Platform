@@ -1,7 +1,11 @@
 @use '@angular/material' as mat;
+@use 'styles/tokens';
 
 @include mat.core();
 
+// Angular Material is used selectively (menus, tooltips, snackbars, overlays).
+// System tokens are remapped to the Enerlytics palette so Material surfaces do
+// not impose default Material styling on the product.
 $enerlytics-theme: mat.define-theme((
   color: (
     theme-type: light,
@@ -9,8 +13,8 @@ $enerlytics-theme: mat.define-theme((
     tertiary: mat.$blue-palette,
   ),
   typography: (
-    brand-family: 'Roboto, "Helvetica Neue", sans-serif',
-    bold-weight: 700,
+    brand-family: 'Inter, ui-sans-serif, system-ui, sans-serif',
+    plain-family: 'Inter, ui-sans-serif, system-ui, sans-serif',
   ),
   density: (
     scale: 0,
@@ -19,11 +23,86 @@ $enerlytics-theme: mat.define-theme((
 
 :root {
   @include mat.all-component-themes($enerlytics-theme);
+
+  // Remap Material system tokens to the Enerlytics palette.
+  --mat-sys-primary: var(--ely-accent);
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-surface: var(--ely-surface-raised);
+  --mat-sys-surface-container: var(--ely-surface-raised);
+  --mat-sys-corner-full: var(--ely-radius-md);
+  --mat-menu-container-shape: var(--ely-radius-md);
 }
 
 html,
 body {
   height: 100%;
+}
+
+body {
   margin: 0;
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  background: var(--ely-bg);
+  color: var(--ely-text);
+  font: var(--ely-text-body);
+  font-family: var(--ely-font-family);
+  -webkit-font-smoothing: antialiased;
+}
+
+// Tabular figures anywhere measured values are displayed.
+.ely-numeric,
+td.ely-numeric,
+app-kpi-value {
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+// Shared element patterns from the design system.
+.ely-card {
+  background: var(--ely-surface);
+  border: 1px solid var(--ely-border);
+  border-radius: var(--ely-radius-md);
+  padding: var(--ely-space-5);
+}
+
+.ely-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ely-space-3);
+  margin-bottom: var(--ely-space-4);
+}
+
+.ely-card__title {
+  font: var(--ely-text-section);
+  margin: 0;
+}
+
+.ely-label {
+  font: var(--ely-text-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ely-text-3);
+}
+
+.ely-muted {
+  color: var(--ely-text-3);
+  font: var(--ely-text-small);
+}
+
+// Focus visibility — keyboard navigation must always be perceivable.
+:focus-visible {
+  outline: 2px solid var(--ely-accent);
+  outline-offset: 1px;
+}
+
+// Skeleton shimmer for loading states.
+@keyframes ely-skeleton-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.45; }
+  100% { opacity: 1; }
+}
+
+.ely-skeleton {
+  background: var(--ely-bg-subtle);
+  border-radius: var(--ely-radius-sm);
+  animation: ely-skeleton-pulse 1.4s ease-in-out infinite;
 }

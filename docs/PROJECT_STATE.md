@@ -2,8 +2,88 @@
 
 ## Current Phase
 
-Phase 17 — UI/UX information architecture specification completed. No frontend
-code was implemented in this phase.
+Phase 18 — Angular application foundation implemented per `docs/UX_SPEC.md`.
+Business pages are not yet implemented; the shell, design system, security
+plumbing, and state components are in place and verified by lint, unit tests,
+and a production build.
+
+The foundation delivers:
+
+- **Design tokens** — `src/styles/_tokens.scss` mirrors every `--ely-*`
+  custom property from UX_SPEC §3 (surfaces, warm-neutral text, deep-teal
+  accent, semantic status palette, 8-color chart palette, typography scale,
+  4px spacing grid, ≤8px radii, float-only shadow, layout widths,
+  breakpoints). Angular Material system tokens are remapped to the Enerlytics
+  palette so Material is used selectively (menus, tooltips) without imposing
+  default Material styling. Inter replaces Roboto.
+- **Centralized HTTP** — `ApiClient` prefixes the environment `apiBaseUrl`,
+  serializes query params, and provides the tenant-scoped `orgPath()` helper.
+  `apiErrorInterceptor` normalizes every failure into `ApiError` (RFC 9457
+  `Problem` aware: status, code, detail, correlationId, field errors).
+- **Authentication** — `AuthService` holds user/active-organization/
+  permissions as signals; `TokenStorage` persists tokens; `authInterceptor`
+  attaches the bearer token and performs a single-flight refresh + retry on
+  401, dropping to `/login` when refresh fails. Session restore is
+  idempotent so guards do not re-probe `/me` per navigation.
+- **Route guards** — `authGuard`, `permissionGuard` (any-of permissions from
+  route `data`, fails closed to `/access-denied`), and `guestGuard`.
+- **RBAC directive** — `*appHasAuthority` structural directive with
+  `appHasAuthorityAll` for all-of semantics; permissions derive from the
+  active organization membership.
+- **Reusable states** — `LoadingStateComponent` (skeleton variants:
+  card/table/kpi-strip/page), `EmptyStateComponent`, `ErrorStateComponent`
+  (RFC 9457 detail + copyable correlation ID + retry).
+- **Responsive shell** — 232px nav rail (64px icon rail at ≤1023px, drawer at
+  ≤767px), permission-filtered nav groups (Monitor/Analyze/Manage/Govern),
+  top bar with route-driven breadcrumbs and profile menu with organization
+  switcher, 1560px content region.
+- **Global context** — `ContextService` holds org/site/building scope,
+  period, granularity, and comparison; state serializes to URL query params
+  (shareable) with localStorage fallback per the §4.2 filter contract.
+- **API contracts** — `core/api/contracts.ts` types the identity, facilities,
+  meters, energy, carbon, billing, forecast, alert, and anomaly DTOs from
+  `contracts/openapi/*.yaml` and the backend records.
+- **Routes** — `/login` (two-panel spec layout) plus lazy-loaded children
+  under the shell for all 12 nav surfaces; unbuilt pages render a shared
+  `PagePlaceholderComponent` driven by route data. Access-denied and
+  not-found pages included.
+- **Tooling** — strict TypeScript enabled; ESLint flat config
+  (`angular-eslint` + `typescript-eslint`, `npm run lint`); Vitest unit
+  tests via `@angular/build:unit-test`; `scripts/set-env.js` now writes both
+  environment files and `angular.json` gained `fileReplacements` so the
+  production build uses `environment.production.ts`.
+
+### Phase 17 — UI/UX specification (prior phase)
+
+Phase 17 produced `docs/UX_SPEC.md` — the information architecture, design
+system, and wireframe-level executive dashboard specification the Angular
+foundation now implements.
+
+`docs/UX_SPEC.md` defines the full product design: a dense, analytical
+workspace aesthetic (flat surfaces, hairline borders, single teal accent,
+≤8px radii, no decorative gradients), a 12-item primary navigation grouped
+into Monitor / Analyze / Manage / Govern sections, a global context model
+(org → scope → period/granularity with site-timezone display), and a reusable
+design system covering color tokens, typography, spacing, grid, cards, KPI
+tiles, buttons, forms, tables, chips, charts vocabulary, status/severity/
+data-quality indicators, and state patterns (empty/loading/error/stale).
+
+Sixteen screens are specified end-to-end — login, executive overview, energy
+dashboard, carbon dashboard, cost dashboard, live monitoring, site details,
+building details, meter details, meter explorer, alerts center, forecasts,
+reports, sustainability targets, organization settings, and user management —
+each with user objective, layout, KPIs, charts, tables, filters,
+interactions, drill-down, and empty/loading/error/responsive behavior.
+Data-quality marks (VALID/ESTIMATED/MISSING/LATE/PARTIAL/UNAVAILABLE) are
+first-class: missing values are never rendered as zero or interpolated.
+
+The executive overview (§4.2) is specified to wireframe detail: ASCII
+wireframes for desktop/tablet/mobile, the seven required KPI tiles (current
+demand, today's consumption/cost/carbon, grid intensity, renewable %,
+active alerts), ten required visualizations, the org/site/building/
+period/comparison filter contract with URL persistence, and the interaction
+contract (tooltips, brush zoom, click-to-drill, auto-refresh cadence,
+explicit last-updated indicators, mandatory unit labels).
 
 `docs/UX_SPEC.md` defines the full product design: a dense, analytical
 workspace aesthetic (flat surfaces, hairline borders, single teal accent,
@@ -339,6 +419,29 @@ and `ESTIMATED` quality; realized carbon intensity is always energy-weighted
 - `docs/EXTERNAL_INTEGRATIONS.md`
 - `docs/PROJECT_STATE.md`
 
+### Phase 18
+
+- `frontend/src/styles/_tokens.scss`
+- `frontend/src/styles.scss`
+- `frontend/src/index.html`
+- `frontend/src/app/core/api/**` (api-error, api-client, api-error.interceptor, contracts)
+- `frontend/src/app/core/auth/**` (token-storage, auth.service, auth.interceptor, auth.guard, has-authority.directive)
+- `frontend/src/app/core/context/context.service.ts`
+- `frontend/src/app/core/ui/**` (loading/empty/error state components)
+- `frontend/src/app/core/layout/**` (shell, nav-rail, breadcrumb, profile-menu)
+- `frontend/src/app/features/login/login.component.ts`
+- `frontend/src/app/features/overview/overview.component.ts`
+- `frontend/src/app/shared/page-placeholder.component.ts`
+- `frontend/src/app/shared/status-pages.component.ts`
+- `frontend/src/app/app.config.ts`, `app.routes.ts`, `app.ts`, `app.spec.ts`
+- `frontend/src/app/**/*.spec.ts` (6 spec files, 25 tests)
+- `frontend/angular.json` (fileReplacements, bundle budget)
+- `frontend/tsconfig.json` (strict mode)
+- `frontend/eslint.config.js`
+- `frontend/scripts/set-env.js` (writes both environment files)
+- `frontend/package.json` (lint script, eslint dev dependencies)
+- `docs/PROJECT_STATE.md`
+
 ### Phase 17
 
 - `docs/UX_SPEC.md`
@@ -524,8 +627,25 @@ Results:
 
 ### Frontend
 
-No frontend changes were required for this phase. The previous Angular build
-remains valid.
+```text
+npm run lint
+npx ng test
+npm run build
+```
+
+Results:
+
+- ESLint (`angular-eslint` + `typescript-eslint` flat config): clean, 0 errors
+- Vitest: 6 spec files, 25 tests passed, 0 failures
+  - `api-error.spec.ts` (4), `context.service.spec.ts` (6),
+    `auth.service.spec.ts` (6), `auth.interceptor.spec.ts` (4),
+    `has-authority.directive.spec.ts` (3), `app.spec.ts` (2)
+- Production build: `ng build` succeeded; lazy chunks emitted per feature
+  (login, overview, placeholders); initial bundle 534 kB raw / 130 kB
+  estimated transfer (Angular Material + animations), budget raised to 600 kB
+  warning / 1 MB error
+- The host's system Node (24.6) is below Angular 22's minimum; builds used the
+  portable Node 24.21.0 toolchain under `.runtime/`
 
 ### Secret Scan
 
@@ -681,6 +801,23 @@ remains valid.
 - Listing organizations for the current user is only available through
   `GET /auth/me`; a dedicated paginated `/organizations` list may be needed.
 
+### Frontend Foundation
+
+- Tokens are stored in `localStorage`; migrating to httpOnly cookie storage or
+  a BFF pattern is a production-hardening decision.
+- `ContextService.initFromRoute` reads the root ActivatedRoute snapshot once at
+  shell init; deep-linking into nested param-driven routes is future work.
+- The global filter bar (org/site/building pickers, date-range and comparison
+  controls) is modeled by `ContextService` but its UI is not yet built — it
+  arrives with the executive dashboard implementation.
+- Overview renders the §4.2 grid with placeholder KPI tiles; no charting
+  library is wired yet (chart palette tokens are ready).
+- `contracts.ts` is hand-maintained from `contracts/openapi/*.yaml`; generating
+  types from the published OpenAPI schema is future work.
+- The host's system Node (24.6) does not satisfy Angular 22's engine
+  requirement (≥24.15); the portable `.runtime/node` toolchain is required
+  for lint/test/build on this machine.
+
 ### Local Tooling
 
 - The current host does not have Java 21, Maven, or Docker on PATH. Validation
@@ -705,8 +842,10 @@ remains valid.
 
 ## Next Recommended Task
 
-1. Implement the Angular frontend against `docs/UX_SPEC.md` (shell, design tokens, login, executive overview first).
+1. Build the executive overview dashboard on the Phase 18 foundation: global
+   filter bar, KPI strip, and the ten §4.2 visualizations wired to the
+   analytics/carbon/billing/alert APIs (a charting library decision is needed).
 2. Add notification delivery channels (email, SMS, webhook, in-app) consuming alert outbox events.
 3. Wire incremental anomaly/emission/cost recalculation to `EnergyAggregationUpdated` events or scheduled jobs.
 4. Extract a shared test fixture helper for users, organizations, roles, and tokens.
-5. Add CI pipelines that build and test both `backend` and `backend/telemetry-simulator`.
+5. Add CI pipelines that build and test `backend`, `backend/telemetry-simulator`, and `frontend`.
